@@ -1,4 +1,3 @@
-
 from gufe.protocols.protocolunit import ProtocolUnit
 
 

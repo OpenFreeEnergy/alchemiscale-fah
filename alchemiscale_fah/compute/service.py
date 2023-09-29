@@ -22,7 +22,11 @@ from gufe.protocols.protocolunit import ProtocolUnit, ProtocolUnitResult, Contex
 from alchemiscale.models import Scope, ScopedKey
 from alchemiscale.storage.models import Task, TaskHub, ComputeServiceID
 from alchemiscale.compute.client import AlchemiscaleComputeClient
-from alchemiscale.compute.service import SynchronousComputeService, InterruptableSleep, SleepInterrupted
+from alchemiscale.compute.service import (
+    SynchronousComputeService,
+    InterruptableSleep,
+    SleepInterrupted,
+)
 
 from .settings import FAHSynchronousComputeServiceSettings
 from .client import FahWorkServerClient
@@ -30,9 +34,7 @@ from ..protocols.protocolunit import FahProtocolUnit
 
 
 class FahAsynchronousComputeService(SynchronousComputeService):
-    """An asynchronous compute service for utilizing a Folding@Home work server.
-
-    """
+    """An asynchronous compute service for utilizing a Folding@Home work server."""
 
     def __init__(self, settings: FAHSynchronousComputeServiceSettings):
         """Create a `FAHSynchronousComputeService` instance."""
@@ -105,23 +107,23 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         # check that heartbeat is still alive; if not, resurrect it
         elif not self.heartbeat_thread.is_alive():
-            self.heartbeat_thread = threading.Thread(
-                target=self.heartbeat, daemon=True
-            )
+            self.heartbeat_thread = threading.Thread(target=self.heartbeat, daemon=True)
             self.heartbeat_thread.start()
 
-    async def execute_DAG(self,
-                          protocoldag: ProtocolDAG, *,
-                          shared_basedir: Path,
-                          scratch_basedir: Path,
-                          keep_shared: bool = False,
-                          keep_scratch: bool = False,
-                          raise_error: bool = True,
-                          n_retries: int = 0,
-        ) -> ProtocolDAGResult:
+    async def execute_DAG(
+        self,
+        protocoldag: ProtocolDAG,
+        *,
+        shared_basedir: Path,
+        scratch_basedir: Path,
+        keep_shared: bool = False,
+        keep_scratch: bool = False,
+        raise_error: bool = True,
+        n_retries: int = 0,
+    ) -> ProtocolDAGResult:
         """
         Locally execute a full :class:`ProtocolDAG` in serial and in-process.
-    
+
         Parameters
         ----------
         protocoldag : ProtocolDAG
@@ -144,18 +146,18 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             objects inside the returned `ProtocolDAGResult`
         n_retries : int
             the number of times to attempt, default 0, i.e. try once and only once
-    
+
         Returns
         -------
         ProtocolDAGResult
             The result of executing the `ProtocolDAG`.
-    
+
         """
         loop = asyncio.get_running_loop()
 
         if n_retries < 0:
             raise ValueError("Must give positive number of retries")
-    
+
         # iterate in DAG order
         results: dict[GufeKey, ProtocolUnitResult] = {}
         all_results = []  # successes AND failures
@@ -164,22 +166,19 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             # translate each `ProtocolUnit` in input into corresponding
             # `ProtocolUnitResult`
             inputs = _pu_to_pur(unit.inputs, results)
-    
+
             attempt = 0
             while attempt <= n_retries:
-                shared = shared_basedir / f'shared_{str(unit.key)}_attempt_{attempt}'
+                shared = shared_basedir / f"shared_{str(unit.key)}_attempt_{attempt}"
                 shared_paths.append(shared)
                 shared.mkdir()
-    
-                scratch = scratch_basedir / f'scratch_{str(unit.key)}_attempt_{attempt}'
-                scratch.mkdir()
-    
-                context = Context(shared=shared,
-                                  scratch=scratch)
 
-                params = dict(context=context,
-                              raise_error=raise_error,
-                              **inputs)
+                scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
+                scratch.mkdir()
+
+                context = Context(shared=shared, scratch=scratch)
+
+                params = dict(context=context, raise_error=raise_error, **inputs)
 
                 # if this is a FahProtocolUnit, then we await its execution in-process
                 if isinstance(unit, FahProtocolUnit):
@@ -194,32 +193,35 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                     # only proceed with additional ones as their deps are satisfied;
                     # would require restructuring this whole method around that
                     # approach, in particular handling retries
-                    result = await loop.run_in_executor(self._pool, execute_unit, params)
+                    result = await loop.run_in_executor(
+                        self._pool, execute_unit, params
+                    )
 
                 all_results.append(result)
-    
+
                 if not keep_scratch:
                     shutil.rmtree(scratch)
-    
+
                 if result.ok():
                     # attach result to this `ProtocolUnit`
                     results[unit.key] = result
                     break
                 attempt += 1
-    
+
             if not result.ok():
                 break
-    
+
         if not keep_shared:
             for shared_path in shared_paths:
                 shutil.rmtree(shared_path)
-    
+
         return ProtocolDAGResult(
-                name=protocoldag.name, 
-                protocol_units=protocoldag.protocol_units, 
-                protocol_unit_results=all_results,
-                transformation_key=protocoldag.transformation_key,
-                extends_key=protocoldag.extends_key)
+            name=protocoldag.name,
+            protocol_units=protocoldag.protocol_units,
+            protocol_unit_results=all_results,
+            transformation_key=protocoldag.transformation_key,
+            extends_key=protocoldag.extends_key,
+        )
 
     async def async_execute(self, task: ScopedKey) -> ScopedKey:
         """Executes given Task.
@@ -281,7 +283,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         return task, result_sk
 
-    async def async_cycle(self, max_tasks: Optional[int] = None, max_time: Optional[int] = None):
+    async def async_cycle(
+        self, max_tasks: Optional[int] = None, max_time: Optional[int] = None
+    ):
         self._check_max_tasks(max_tasks)
         self._check_max_time(max_time)
 
@@ -318,8 +322,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             # refresh heartbeat in case it died
             self._refresh_heartbeat_thread()
 
-            done, pending = await asyncio.wait(async_tasks,
-                                               return_when=asyncio.FIRST_COMPLETED)
+            done, pending = await asyncio.wait(
+                async_tasks, return_when=asyncio.FIRST_COMPLETED
+            )
 
             # remove any completed tasks from running list
             for async_task in done:
@@ -331,7 +336,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
                 result_sks.append(result_sk)
                 async_tasks.remove(async_task)
-            
+
             # attempt to claim a new task, add to execution
             self.logger.info("Attempting to claim an additional task")
             task_sks: List[ScopedKey] = self.client.claim_tasks()
@@ -382,7 +387,6 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         try:
             self.logger.info("Starting main loop")
             while not self._stop:
-
                 # refresh heartbeat in case it died
                 self._refresh_heartbeat_thread()
 

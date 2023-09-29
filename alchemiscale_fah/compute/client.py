@@ -28,9 +28,8 @@ from cryptography.hazmat.primitives import hashes
 
 
 class FahAdaptiveSamplingClient:
-    """Client for interacting with a Folding@Home assignment and work server.
+    """Client for interacting with a Folding@Home assignment and work server."""
 
-    """
     def __init__(
         self,
         as_api_url: str,

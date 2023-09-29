@@ -9,5 +9,5 @@ from fenchiridion.protocols.nonequilibrium_cycling import NonEquilibriumCyclingP
 from ..protocolunit import FahOpenMMProtocolUnit
 
 
-class  FahNonEqulibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
+class FahNonEqulibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
     ...
