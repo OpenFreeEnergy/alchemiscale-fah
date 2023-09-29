@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+"""
+:mod:`alchemiscale_fah.compute.client` --- client for interacting with Folding@Home resources
+=============================================================================================
+
+"""
 
 import os
 import requests
@@ -24,6 +28,9 @@ from cryptography.hazmat.primitives import hashes
 
 
 class FahAdaptiveSamplingClient:
+    """Client for interacting with a Folding@Home assignment and work server.
+
+    """
     def __init__(
         self,
         as_api_url: str,
