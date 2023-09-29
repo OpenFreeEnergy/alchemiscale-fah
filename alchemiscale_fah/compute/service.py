@@ -13,6 +13,11 @@ import threading
 import time
 import logging
 import shutil
+import concurrent.futures
+
+from gufe.tokenization import GufeKey
+from gufe.protocols.protocoldag import ProtocolDAG, ProtocolDAGResult, _pu_to_pur
+from gufe.protocols.protocolunit import ProtocolUnit, ProtocolUnitResult, Context
 
 from alchemiscale.models import Scope, ScopedKey
 from alchemiscale.storage.models import Task, TaskHub, ComputeServiceID
@@ -21,6 +26,7 @@ from alchemiscale.compute.service import SynchronousComputeService, Interruptabl
 
 from .settings import FAHSynchronousComputeServiceSettings
 from .client import FahWorkServerClient
+from ..protocols.protocolunit import FahProtocolUnit
 
 
 class FahAsynchronousComputeService(SynchronousComputeService):
@@ -104,8 +110,116 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             )
             self.heartbeat_thread.start()
 
-    async def execute_DAG(self, protocoldag):
-        ...
+    async def execute_DAG(self,
+                          protocoldag: ProtocolDAG, *,
+                          shared_basedir: Path,
+                          scratch_basedir: Path,
+                          keep_shared: bool = False,
+                          keep_scratch: bool = False,
+                          raise_error: bool = True,
+                          n_retries: int = 0,
+        ) -> ProtocolDAGResult:
+        """
+        Locally execute a full :class:`ProtocolDAG` in serial and in-process.
+    
+        Parameters
+        ----------
+        protocoldag : ProtocolDAG
+            The :class:``ProtocolDAG`` to execute.
+        shared_basedir : Path
+            Filesystem path to use for shared space that persists across whole DAG
+            execution. Used by a `ProtocolUnit` to pass file contents to dependent
+            class:``ProtocolUnit`` instances.
+        scratch_basedir : Path
+            Filesystem path to use for `ProtocolUnit` `scratch` space.
+        keep_shared : bool
+            If True, don't remove shared directories for `ProtocolUnit`s after
+            the `ProtocolDAG` is executed.
+        keep_scratch : bool
+            If True, don't remove scratch directories for a `ProtocolUnit` after
+            it is executed.
+        raise_error : bool
+            If True, raise an exception if a ProtocolUnit fails, default True
+            if False, any exceptions will be stored as `ProtocolUnitFailure`
+            objects inside the returned `ProtocolDAGResult`
+        n_retries : int
+            the number of times to attempt, default 0, i.e. try once and only once
+    
+        Returns
+        -------
+        ProtocolDAGResult
+            The result of executing the `ProtocolDAG`.
+    
+        """
+        loop = asyncio.get_running_loop()
+
+        if n_retries < 0:
+            raise ValueError("Must give positive number of retries")
+    
+        # iterate in DAG order
+        results: dict[GufeKey, ProtocolUnitResult] = {}
+        all_results = []  # successes AND failures
+        shared_paths = []
+        for unit in protocoldag.protocol_units:
+            # translate each `ProtocolUnit` in input into corresponding
+            # `ProtocolUnitResult`
+            inputs = _pu_to_pur(unit.inputs, results)
+    
+            attempt = 0
+            while attempt <= n_retries:
+                shared = shared_basedir / f'shared_{str(unit.key)}_attempt_{attempt}'
+                shared_paths.append(shared)
+                shared.mkdir()
+    
+                scratch = scratch_basedir / f'scratch_{str(unit.key)}_attempt_{attempt}'
+                scratch.mkdir()
+    
+                context = Context(shared=shared,
+                                  scratch=scratch)
+
+                params = dict(context=context,
+                              raise_error=raise_error,
+                              **inputs)
+
+                # if this is a FahProtocolUnit, then we await its execution in-process
+                if isinstance(unit, FahProtocolUnit):
+                    result = await unit.execute(**params)
+                else:
+                    # otherwise, execute with process pool, allowing CPU bound
+                    # units to parallelize across multiple tasks being executed
+                    # at once
+
+                    # TODO instead of immediately `await`ing here, we could build
+                    # up a task for each ProtocolUnit whose deps are satisfied, and
+                    # only proceed with additional ones as their deps are satisfied;
+                    # would require restructuring this whole method around that
+                    # approach, in particular handling retries
+                    result = await loop.run_in_executor(self._pool, execute_unit, params)
+
+                all_results.append(result)
+    
+                if not keep_scratch:
+                    shutil.rmtree(scratch)
+    
+                if result.ok():
+                    # attach result to this `ProtocolUnit`
+                    results[unit.key] = result
+                    break
+                attempt += 1
+    
+            if not result.ok():
+                break
+    
+        if not keep_shared:
+            for shared_path in shared_paths:
+                shutil.rmtree(shared_path)
+    
+        return ProtocolDAGResult(
+                name=protocoldag.name, 
+                protocol_units=protocoldag.protocol_units, 
+                protocol_unit_results=all_results,
+                transformation_key=protocoldag.transformation_key,
+                extends_key=protocoldag.extends_key)
 
     async def async_execute(self, task: ScopedKey) -> ScopedKey:
         """Executes given Task.
@@ -135,7 +249,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         try:
             # TODO need a custom `execute_DAG` here that feeds appropriate info
             # (via context?), such as the fah client, to units that interact with F@H
-            protocoldagresult = await execute_DAG(
+            protocoldagresult = await self.execute_DAG(
                 protocoldag,
                 shared_basedir=shared,
                 scratch_basedir=scratch,
@@ -261,6 +375,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self._tasks_counter = 0
         self._start_time = time.time()
 
+        # create process pool
+        self._pool = concurrent.futures.ProcessPoolExecutor()
+
         # TODO: add running count of successes/failures, log to output
         try:
             self.logger.info("Starting main loop")
@@ -279,11 +396,16 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         except SleepInterrupted:
             self.logger.info("Service stopping.")
         finally:
+            # setting this ensures heartbeat also stops
+            self._stop = True
             # remove ComputeServiceRegistration, drop all claims
             self._deregister()
             self.logger.info(
                 "Deregistered service with registration '%s'",
                 str(self.compute_service_id),
             )
+            self._pool.shutdown(cancel_futures=True)
 
 
+def execute_unit(unit, params):
+    return unit.execute(**params)
