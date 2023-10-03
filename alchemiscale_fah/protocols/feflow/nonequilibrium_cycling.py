@@ -1,13 +1,13 @@
 """
-:mod:`alchemiscale_fah.protocols.fenchiridion.nonequilibrium_cycling` --- non-equilibrium cycling protocol for Folding@Home
-===========================================================================================================================
+:mod:`alchemiscale_fah.protocols.feflow.nonequilibrium_cycling` --- non-equilibrium cycling protocol for Folding@Home
+=====================================================================================================================
 
 """
 
-from fenchiridion.protocols.nonequilibrium_cycling import NonEquilibriumCyclingProtocol
+from feflow.protocols.nonequilibrium_cycling import NonEquilibriumCyclingProtocol
 
-from ..protocolunit import FahOpenMMProtocolUnit
+from ..protocolunit import FahOpenMMSimulationUnit
 
 
 class FahNonEqulibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
-    ...
+    _simulation_unit = FahOpenMMSimulationUnit

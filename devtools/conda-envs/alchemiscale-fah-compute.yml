@@ -1,4 +1,4 @@
-name: alchemiscale-fah-compute
+name: alchemiscale-fah
 channels:
   - conda-forge
   - openeye

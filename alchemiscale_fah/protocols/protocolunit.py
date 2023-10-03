@@ -1,3 +1,9 @@
+"""
+:mod:`alchemiscale_fah.protocols.protocolunit` --- reusable ProtocolUnits for Folding@Home protocols
+====================================================================================================
+
+"""
+
 from dataclasses import dataclass
 
 from gufe.protocols.protocolunit import ProtocolUnit, Context
@@ -17,10 +23,16 @@ class FahSimulationUnit(ProtocolUnit):
 
 
 class FahOpenMMSimulationUnit(FahSimulationUnit):
-    async def _execute(self, ctx, *, state_a, state_b, mapping, settings, **inputs):
-        ...
+    async def _execute(self, ctx: FahContext, *, setup, settings, **inputs):
 
         # take serialized system, state, integrator from SetupUnit
+        setup['system']
+
+
+        ctx.fah_client
+
+        # check projects available from work server; compare number of atoms to
+        # that of this system; choose closest one, rounding up
 
 
         # pass to work server, create RUN/CLONE as appropriate

@@ -17,15 +17,6 @@ from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
 
 
-# project_data = dict(
-#    core_id=0x22,
-#    gens=25000,
-#    atoms=288449,
-#    credit=56,
-#    timeout=0.002,
-#    deadline=0.005,
-# )
-
 
 class FahAdaptiveSamplingClient:
     """Client for interacting with a Folding@Home assignment and work server."""
@@ -197,8 +188,17 @@ class FahAdaptiveSamplingClient:
         for name in files:
             self._upload(self.ws_api_url, f"/projects/{project_id}/files/{name}", name)
 
+    def get_projects(self):
+        return self._get(self.ws_api_url, f"/projects")
+
     def get_project(self, project_id):
         return self._get(self.ws_api_url, f"/projects/{project_id}")
+
+    def get_project_jobs(self, project_id):
+        return self._get(self.ws_api_url, f"/projects/{project_id}/jobs")
+
+    def get_clone(self, project_id):
+        return self._get(self.ws_api_url, f"/projects/{project_id}/jobs")
 
     def get_job_files(self, project_id, run_id, clone_id):
         return self._get(
