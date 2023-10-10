@@ -50,7 +50,7 @@ class FahSynchronousComputeServiceSettings(BaseModel):
         description="Scopes to limit Task claiming to; defaults to all Scopes accessible by compute identity.",
     )
     claim_limit: int = Field(
-        1, description="Maximum number of Tasks to claim at a time from a TaskHub."
+        1000, description="Maximum number of Tasks to claim at a time from a TaskHub."
     )
     loglevel: str = Field(
         "WARN",

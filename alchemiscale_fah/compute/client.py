@@ -8,6 +8,7 @@ import os
 import requests
 from typing import Optional
 from urllib.parse import urljoin
+from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -16,6 +17,16 @@ from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
 
+from .models import (
+    ProjectData,
+    ASWorkServerData,
+    ASProjectData,
+    JobAction,
+    JobActionEnum,
+    JobData,
+    JobResults,
+    FileData,
+)
 
 
 class FahAdaptiveSamplingClient:
@@ -129,30 +140,33 @@ class FahAdaptiveSamplingClient:
 
         r.close()
 
-    def as_get_ws(self):
+    def as_get_ws(self) -> ASWorkServerData:
         """Get work server attributes from assignment server."""
-        return self._get(self.as_api_url, f"/ws/{self.ws_ip_addr}")
+        return ASWorkServerData(**self._get(self.as_api_url, f"/ws/{self.ws_ip_addr}"))
 
-    def as_set_ws(self, as_workserver_data):
+    def as_set_ws(self, as_workserver_data: ASWorkServerData):
         """Set work server attributes on assignment server."""
         return self._put(
             self.as_api_url, f"/ws/{self.ws_ip_addr}", **as_workserver_data
         )
 
-    def as_get_project(self, project_id):
+    def as_get_project(self, project_id) -> ASProjectData:
         """Set project attributes on the assignment server."""
-        self._gut(
-            self.as_api_url,
-            f"/ws/{self.ws_ip_addr}/projects/{project_id}",
+        return ASProjectData(
+            **self._get(
+                self.as_api_url,
+                f"/ws/{self.ws_ip_addr}/projects/{project_id}",
+            )
         )
 
     def as_set_project(self, project_id, weight, constraints):
         """Set project attributes on the assignment server."""
+
+        as_project_data = ASProjectData(weight=weight, constraints=constraints)
         self._put(
             self.as_api_url,
             f"/ws/{self.ws_ip_addr}/projects/{project_id}",
-            weight=weight,
-            constraints=constraints,
+            **as_project_data.dict(),
         )
 
     def as_reset_project(self, project_id):
@@ -161,50 +175,94 @@ class FahAdaptiveSamplingClient:
         Sets project weight to 0, drops all constraints.
 
         """
+        as_project_data = ASProjectData(weight=0, constraints="")
         self._put(
             self.as_api_url,
             f"/ws/{self.ws_ip_addr}/projects/{project_id}",
-            weight=0,
-            constraints="",
+            **as_project_data.dict(),
         )
 
-    def create_project(self, project_id, project_data):
+    def get_projects(self) -> dict[str, ProjectData]:
+        return self._get(self.ws_api_url, f"/projects")
+
+    def create_project(self, project_id, project_data: ProjectData):
         self._put(self.ws_api_url, f"/projects/{project_id}", **project_data)
+
+    def update_project(self, project_id, project_data: ProjectData):
+        self.create_project(project_id, project_data)
 
     def delete_project(self, project_id):
         self._delete(self.ws_api_url, f"/projects/{project_id}")
 
-    def start_run(self, project_id, run_id, clones=0):
-        """Start a new run."""
+    def get_project(self, project_id) -> ProjectData:
+        return ProjectData(**self._get(self.ws_api_url, f"/projects/{project_id}"))
+
+    def get_project_jobs(self, project_id) -> JobResults:
+        return JobResults(**self._get(self.ws_api_url, f"/projects/{project_id}/jobs"))
+
+    def create_run(
+        self,
+        project_id,
+        core_file: Path,
+        system_file: Path,
+        state_file: Path,
+        integrator_file: Path,
+    ) -> int:
+        # choose next available run_id from number of runs in project
+        project_data = self.get_project(project_id)
+        run_id = project_data.runs
+
+        # add files for this run to project directory
+        for filepath in [core_file, system_file, state_file, integrator_file]:
+            self._upload(
+                self.ws_api_url,
+                f"/projects/{project_id}/files/RUN{run_id}/{filepath.name}",
+                filepath.name,
+            )
+
+        # update project data with new run count
+        project_data_ = project_data.dict()
+        project_data_["runs"] = project_data.runs + 1
+        project_data_ = ProjectData(**project_data_)
+        self.update_project(project_id, project_data_)
+
+        return run_id
+
+    # provided by @jcoffland; not sure this is current
+    # def start_run(self, project_id, run_id, clones=0):
+    #    """Start a new run."""
+    #    self._put(
+    #        self.ws_api_url,
+    #        f"/projects/{project_id}/runs/{run_id}/create",
+    #        clones=clones,
+    #    )
+
+    def start_run_clone(self, project_id, run_id, clone_id):
+        """Start a new CLONE for a given RUN."""
+
+        jobaction = JobAction(action=JobActionEnum.create)
+
         self._put(
             self.ws_api_url,
-            f"/projects/{project_id}/runs/{run_id}/create",
-            clones=clones,
+            f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}",
+            **jobaction.dict(),
         )
 
-    def upload_project_files(self, project_id):
-        files = "core.xml integrator.xml.bz2 state.xml.bz2 system.xml.bz2".split()
+    def get_run_clone(self, project_id, run_id, clone_id) -> JobData:
+        """Get state information for the given RUN CLONE."""
 
-        for name in files:
-            self._upload(self.ws_api_url, f"/projects/{project_id}/files/{name}", name)
+        return JobData(
+            **self._get(
+                self.ws_api_url,
+                f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}",
+            )
+        )
 
-    def get_projects(self):
-        return self._get(self.ws_api_url, f"/projects")
-
-    def get_project(self, project_id):
-        return self._get(self.ws_api_url, f"/projects/{project_id}")
-
-    def get_project_jobs(self, project_id):
-        return self._get(self.ws_api_url, f"/projects/{project_id}/jobs")
-
-    def get_clone(self, project_id):
-        return self._get(self.ws_api_url, f"/projects/{project_id}/jobs")
-
-    def get_job_files(self, project_id, run_id, clone_id):
-        return self._get(
+    def get_job_files(self, project_id, run_id, clone_id) -> list[FileData]:
+        return [FileData(**i) for i in self._get(
             self.ws_api_url,
             f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",
-        )
+        )]
 
     def get_xtcs(self, project_id, run_id, clone_id):
         data = self._get(

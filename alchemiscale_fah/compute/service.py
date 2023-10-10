@@ -312,7 +312,7 @@ async def execute_DAG(
     raise_error: bool = True,
     n_retries: int = 0,
     pool: ProcessPoolExecutor,
-    fah_client: FahAdaptiveSamplingClient
+    fah_client: FahAdaptiveSamplingClient,
 ) -> ProtocolDAGResult:
     """
     Locally execute a full :class:`ProtocolDAG` in serial and in-process.
@@ -413,4 +413,3 @@ async def execute_DAG(
         transformation_key=protocoldag.transformation_key,
         extends_key=protocoldag.extends_key,
     )
-
