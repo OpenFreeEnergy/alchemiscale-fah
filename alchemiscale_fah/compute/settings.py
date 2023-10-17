@@ -39,6 +39,10 @@ class FahSynchronousComputeServiceSettings(BaseModel):
         False,
         description="If True, don't remove scratch directories for `ProtocolUnit`s after completion.",
     )
+    n_retries: int = Field(
+        3,
+        description="Number of times to attempt a given Task on failure.",
+    )
     sleep_interval: int = Field(
         30, description="Time in seconds to sleep if no Tasks claimed from compute API."
     )

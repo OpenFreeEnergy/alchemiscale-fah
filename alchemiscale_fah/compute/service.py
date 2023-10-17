@@ -136,14 +136,16 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         self.logger.info("Executing '%s'...", protocoldag)
         try:
-            # TODO need a custom `execute_DAG` here that feeds appropriate info
-            # (via context?), such as the fah client, to units that interact with F@H
+            # use a custom `execute_DAG` here that feeds appropriate components
+            # via context, such as the FahAdaptiveSamplingClient, to units that
+            # interact with FAH
             protocoldagresult = await execute_DAG(
                 protocoldag,
                 shared_basedir=shared,
                 scratch_basedir=scratch,
                 keep_scratch=self.keep_scratch,
                 raise_error=False,
+                n_retries=self.settings.n_retries
             )
         finally:
             if not self.keep_shared:
@@ -386,7 +388,7 @@ async def execute_DAG(
                 # only proceed with additional ones as their deps are satisfied;
                 # would require restructuring this whole method around that
                 # approach, in particular handling retries
-                result = await loop.run_in_executor(pool, execute_unit, params)
+                result = await loop.run_in_executor(pool, execute_unit, unit, params)
 
             all_results.append(result)
 
