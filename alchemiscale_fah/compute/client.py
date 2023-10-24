@@ -323,6 +323,18 @@ class FahAdaptiveSamplingClient:
                 src,
             )
 
+    def delete_run_file(self, project_id, run_id, path: Path):
+            self._delete(
+                self.ws_api_url,
+                f"/projects/{project_id}/files/RUN{run_id}/{path}",
+            )
+
+    def get_run_file(self, project_id, run_id, path: Path):
+            self._delete(
+                self.ws_api_url,
+                f"/projects/{project_id}/files/RUN{run_id}/{path}",
+            )
+
     # provided by @jcoffland; not sure this is current
     # def start_run(self, project_id, run_id, clones=0):
     #    """Start a new run."""
@@ -332,7 +344,7 @@ class FahAdaptiveSamplingClient:
     #        clones=clones,
     #    )
 
-    def start_run_clone(self, project_id, run_id, clone_id):
+    def create_clone(self, project_id, run_id, clone_id):
         """Start a new CLONE for a given RUN."""
 
         jobaction = JobAction(action=JobActionEnum.create)
@@ -343,8 +355,8 @@ class FahAdaptiveSamplingClient:
             **jobaction.dict(),
         )
 
-    def get_run_clone(self, project_id, run_id, clone_id) -> JobData:
-        """Get state information for the given RUN CLONE."""
+    def get_clone(self, project_id, run_id, clone_id) -> JobData:
+        """Get state information for the given CLONE."""
 
         return JobData(
             **self._get(
@@ -359,16 +371,23 @@ class FahAdaptiveSamplingClient:
             f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",
         )]
 
-    def get_xtcs(self, project_id, run_id, clone_id):
-        data = self._get(
-            self.ws_api_url,
-            f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",
-        )
 
-        for info in data:
-            if info["path"].endswith(".xtc"):
-                self._download(
-                    self.ws_api_url,
-                    f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{info['path']}",
-                    info["path"],
-                )
+    def list_gen_files(self, project_id, run_id, clone_id, gen_id) -> list[FileData]:
+        return [FileData(**i) for i in self._get(
+            self.ws_api_url,
+            f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/gens/{gen_id}/files",
+        )]
+
+    #def get_xtcs(self, project_id, run_id, clone_id):
+    #    data = self._get(
+    #        self.ws_api_url,
+    #        f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",
+    #    )
+
+    #    for info in data:
+    #        if info["path"].endswith(".xtc"):
+    #            self._download(
+    #                self.ws_api_url,
+    #                f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{info['path']}",
+    #                info["path"],
+    #            )
