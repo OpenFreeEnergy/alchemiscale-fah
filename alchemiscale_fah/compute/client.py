@@ -9,6 +9,7 @@ import requests
 from typing import Optional
 from urllib.parse import urljoin
 from pathlib import Path
+from datetime import datetime
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -182,7 +183,7 @@ class FahAdaptiveSamplingClient:
             **as_project_data.dict(),
         )
 
-    def get_projects(self) -> dict[str, ProjectData]:
+    def list_projects(self) -> dict[str, ProjectData]:
         return self._get(self.ws_api_url, f"/projects")
 
     def create_project(self, project_id, project_data: ProjectData):
@@ -197,8 +198,92 @@ class FahAdaptiveSamplingClient:
     def get_project(self, project_id) -> ProjectData:
         return ProjectData(**self._get(self.ws_api_url, f"/projects/{project_id}"))
 
-    def get_project_jobs(self, project_id) -> JobResults:
-        return JobResults(**self._get(self.ws_api_url, f"/projects/{project_id}/jobs"))
+    def list_project_files(self, project_id) -> list[FileData]:
+        """Get a list of files associated with a project.
+
+        Parameters
+        ----------
+        project_id
+            ID of the project
+        src
+            File to download.
+        dest
+            Path to download file to.
+
+        """
+        return [FileData(**i) for i in self._get(
+            self.ws_api_url,
+            f"/projects/{project_id}/files",
+        )]
+
+    def create_project_file(self, project_id, src: Path, dest: Path):
+        """Upload a file to the PROJECT directory tree.
+
+        Parameters
+        ----------
+        project_id
+            ID of the project
+        src
+            File to upload.
+        dest
+            Path relative to PROJECT directory to upload to.
+
+        """
+        return [FileData(**i) for i in self._upload(
+            self.ws_api_url,
+            f"/projects/{project_id}/files/{dest}",
+            src
+        )]
+
+    def delete_project_file(self, project_id, path):
+        """Delete a file from the PROJECT directory tree.
+
+        Parameters
+        ----------
+        project_id
+            ID of the project
+        path
+            File to delete.
+
+        """
+        return [FileData(**i) for i in self._delete(
+            self.ws_api_url,
+            f"/projects/{project_id}/files/{path}",
+        )]
+
+    def get_project_file(self, project_id, src, dest):
+        """Download a file from the PROJECT directory tree.
+
+        Parameters
+        ----------
+        project_id
+            ID of the project
+        src
+            File to download.
+        dest
+            Path to download file to.
+
+        """
+        return [FileData(**i) for i in self._download(
+            self.ws_api_url,
+            f"/projects/{project_id}/files/{src}",
+            dest
+        )]
+
+    def get_project_jobs(self, project_id, since: datetime) -> JobResults:
+        """Get a list of all active jobs for the project.
+
+        Parameters
+        ----------
+        project_id
+            ID of the project
+        since 
+            If given, only list jobs that have been updated since this time.
+
+        """
+        return JobResults(**self._get(self.ws_api_url,
+                                      f"/projects/{project_id}/jobs",
+                                      since=since.isoformat()))
 
     def create_run(
         self,
@@ -217,16 +302,26 @@ class FahAdaptiveSamplingClient:
             self._upload(
                 self.ws_api_url,
                 f"/projects/{project_id}/files/RUN{run_id}/{filepath.name}",
-                filepath.name,
+                filepath,
             )
 
         # update project data with new run count
+        # NOTE: is this really necessary???
+        # does the WS do this on its own?
+        # need clarity on what runs,clones,gens counts in project data actually do
         project_data_ = project_data.dict()
         project_data_["runs"] = project_data.runs + 1
         project_data_ = ProjectData(**project_data_)
         self.update_project(project_id, project_data_)
 
         return run_id
+
+    def create_run_file(self, project_id, run_id, src: Path, dest: Path):
+            self._upload(
+                self.ws_api_url,
+                f"/projects/{project_id}/files/RUN{run_id}/{dest}",
+                src,
+            )
 
     # provided by @jcoffland; not sure this is current
     # def start_run(self, project_id, run_id, clones=0):
@@ -258,7 +353,7 @@ class FahAdaptiveSamplingClient:
             )
         )
 
-    def get_job_files(self, project_id, run_id, clone_id) -> list[FileData]:
+    def list_clone_files(self, project_id, run_id, clone_id) -> list[FileData]:
         return [FileData(**i) for i in self._get(
             self.ws_api_url,
             f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",

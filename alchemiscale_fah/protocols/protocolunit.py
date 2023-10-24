@@ -52,7 +52,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # check projects available from work server
         # compare number of atoms to that of this system
-        available_projects = ctx.fah_client.get_projects()
+        available_projects = ctx.fah_client.list_projects()
 
         # sort projects in atom count order
         # TODO: NEED TO CHOOSE AN ALGORITHMIC APPROACH TO SPAWNING NEW PROJECTS AS NEEDED
