@@ -194,7 +194,7 @@ class FahAdaptiveSamplingClient:
         )
 
     def list_projects(self) -> dict[str, ProjectData]:
-        return self._get(self.ws_url, f"/api/projects")
+        return {key: ProjectData(**value) for key, value in self._get(self.ws_url, f"/api/projects").items()}
 
     def create_project(self, project_id, project_data: ProjectData):
         self._put(self.ws_url, f"/api/projects/{project_id}", **project_data)
