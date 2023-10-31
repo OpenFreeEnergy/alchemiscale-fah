@@ -33,11 +33,8 @@ class FahSimulationUnit(ProtocolUnit):
 
 
 class FahOpenMMSimulationUnit(FahSimulationUnit):
-
     def generate_core_file(settings: Settings):
-        """Generate a core file from the Protocol's settings.
-
-        """
+        """Generate a core file from the Protocol's settings."""
         ...
 
     async def _execute(self, ctx: FahContext, *, setup, settings, **inputs):
@@ -83,8 +80,9 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                 break
             elif jobdata.state == JobStateEnum.failed:
                 raise FahExecutionException(
-                        "Consecutive failed or faulty WUs exceeded the "
-                        f"maximum for RUN {run_id} in PROJECT {project_id}")
+                    "Consecutive failed or faulty WUs exceeded the "
+                    f"maximum for RUN {run_id} in PROJECT {project_id}"
+                )
 
             else:
                 await asyncio.sleep(ctx.fah_poll_sleep)

@@ -145,7 +145,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 scratch_basedir=scratch,
                 keep_scratch=self.keep_scratch,
                 raise_error=False,
-                n_retries=self.settings.n_retries
+                n_retries=self.settings.n_retries,
             )
         finally:
             if not self.keep_shared:

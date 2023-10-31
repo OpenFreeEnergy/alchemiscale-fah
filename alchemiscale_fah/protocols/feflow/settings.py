@@ -4,5 +4,4 @@ from ...settings.fah_settings import FahCoreSettings
 
 
 class FahNonEquilibriumCyclingSettings(NonEquilibriumCyclingSettings):
-
     fah_settings: FahCoreSettings
