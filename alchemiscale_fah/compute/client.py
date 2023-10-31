@@ -35,15 +35,15 @@ class FahAdaptiveSamplingClient:
 
     def __init__(
         self,
-        as_api_url: str,
-        ws_api_url: str,
+        as_url: str,
+        ws_url: str,
         ws_ip_addr: str,
         certificate_file: os.PathLike = "api-certificate.pem",
         key_file: os.PathLike = "api-private.pem",
         verify: bool = True,
     ):
-        self.as_api_url = as_api_url
-        self.ws_api_url = ws_api_url
+        self.as_url = as_url
+        self.ws_url = ws_url
         self.ws_ip_addr = ws_ip_addr
 
         self.certificate = self.read_certificate(certificate_file)
@@ -153,20 +153,20 @@ class FahAdaptiveSamplingClient:
 
     def as_get_ws(self) -> ASWorkServerData:
         """Get work server attributes from assignment server."""
-        return ASWorkServerData(**self._get(self.as_api_url, f"/ws/{self.ws_ip_addr}"))
+        return ASWorkServerData(**self._get(self.as_url, f"/ws/{self.ws_ip_addr}"))
 
     def as_set_ws(self, as_workserver_data: ASWorkServerData):
         """Set work server attributes on assignment server."""
         return self._put(
-            self.as_api_url, f"/ws/{self.ws_ip_addr}", **as_workserver_data
+            self.as_url, f"/api/ws/{self.ws_ip_addr}", **as_workserver_data
         )
 
     def as_get_project(self, project_id) -> ASProjectData:
         """Set project attributes on the assignment server."""
         return ASProjectData(
             **self._get(
-                self.as_api_url,
-                f"/ws/{self.ws_ip_addr}/projects/{project_id}",
+                self.as_url,
+                f"/api/ws/{self.ws_ip_addr}/projects/{project_id}",
             )
         )
 
@@ -175,8 +175,8 @@ class FahAdaptiveSamplingClient:
 
         as_project_data = ASProjectData(weight=weight, constraints=constraints)
         self._put(
-            self.as_api_url,
-            f"/ws/{self.ws_ip_addr}/projects/{project_id}",
+            self.as_url,
+            f"/api/ws/{self.ws_ip_addr}/projects/{project_id}",
             **as_project_data.dict(),
         )
 
@@ -188,25 +188,25 @@ class FahAdaptiveSamplingClient:
         """
         as_project_data = ASProjectData(weight=0, constraints="")
         self._put(
-            self.as_api_url,
-            f"/ws/{self.ws_ip_addr}/projects/{project_id}",
+            self.as_url,
+            f"/api/ws/{self.ws_ip_addr}/projects/{project_id}",
             **as_project_data.dict(),
         )
 
     def list_projects(self) -> dict[str, ProjectData]:
-        return self._get(self.ws_api_url, f"/projects")
+        return self._get(self.ws_url, f"/api/projects")
 
     def create_project(self, project_id, project_data: ProjectData):
-        self._put(self.ws_api_url, f"/projects/{project_id}", **project_data)
+        self._put(self.ws_url, f"/api/projects/{project_id}", **project_data)
 
     def update_project(self, project_id, project_data: ProjectData):
         self.create_project(project_id, project_data)
 
     def delete_project(self, project_id):
-        self._delete(self.ws_api_url, f"/projects/{project_id}")
+        self._delete(self.ws_url, f"/api/projects/{project_id}")
 
     def get_project(self, project_id) -> ProjectData:
-        return ProjectData(**self._get(self.ws_api_url, f"/projects/{project_id}"))
+        return ProjectData(**self._get(self.ws_url, f"/api/projects/{project_id}"))
 
     def list_project_files(self, project_id) -> list[FileData]:
         """Get a list of files associated with a project.
@@ -224,8 +224,8 @@ class FahAdaptiveSamplingClient:
         return [
             FileData(**i)
             for i in self._get(
-                self.ws_api_url,
-                f"/projects/{project_id}/files",
+                self.ws_url,
+                f"/api/projects/{project_id}/files",
             )
         ]
 
@@ -245,7 +245,7 @@ class FahAdaptiveSamplingClient:
         return [
             FileData(**i)
             for i in self._upload(
-                self.ws_api_url, f"/projects/{project_id}/files/{dest}", src
+                self.ws_url, f"/api/projects/{project_id}/files/{dest}", src
             )
         ]
 
@@ -263,8 +263,8 @@ class FahAdaptiveSamplingClient:
         return [
             FileData(**i)
             for i in self._delete(
-                self.ws_api_url,
-                f"/projects/{project_id}/files/{path}",
+                self.ws_url,
+                f"/api/projects/{project_id}/files/{path}",
             )
         ]
 
@@ -284,7 +284,7 @@ class FahAdaptiveSamplingClient:
         return [
             FileData(**i)
             for i in self._download(
-                self.ws_api_url, f"/projects/{project_id}/files/{src}", dest
+                self.ws_url, f"/api/projects/{project_id}/files/{src}", dest
             )
         ]
 
@@ -301,7 +301,7 @@ class FahAdaptiveSamplingClient:
         """
         return JobResults(
             **self._get(
-                self.ws_api_url, f"/projects/{project_id}/jobs", since=since.isoformat()
+                self.ws_url, f"/api/projects/{project_id}/jobs", since=since.isoformat()
             )
         )
 
@@ -320,8 +320,8 @@ class FahAdaptiveSamplingClient:
         # add files for this run to project directory
         for filepath in [core_file, system_file, state_file, integrator_file]:
             self._upload(
-                self.ws_api_url,
-                f"/projects/{project_id}/files/RUN{run_id}/{filepath.name}",
+                self.ws_url,
+                f"/api/projects/{project_id}/files/RUN{run_id}/{filepath.name}",
                 filepath,
             )
 
@@ -338,28 +338,28 @@ class FahAdaptiveSamplingClient:
 
     def create_run_file(self, project_id, run_id, src: Path, dest: Path):
         self._upload(
-            self.ws_api_url,
-            f"/projects/{project_id}/files/RUN{run_id}/{dest}",
+            self.ws_url,
+            f"/api/projects/{project_id}/files/RUN{run_id}/{dest}",
             src,
         )
 
     def delete_run_file(self, project_id, run_id, path: Path):
         self._delete(
-            self.ws_api_url,
-            f"/projects/{project_id}/files/RUN{run_id}/{path}",
+            self.ws_url,
+            f"/api/projects/{project_id}/files/RUN{run_id}/{path}",
         )
 
     def get_run_file(self, project_id, run_id, path: Path):
         self._delete(
-            self.ws_api_url,
-            f"/projects/{project_id}/files/RUN{run_id}/{path}",
+            self.ws_url,
+            f"/api/projects/{project_id}/files/RUN{run_id}/{path}",
         )
 
     # provided by @jcoffland; not sure this is current
     # def start_run(self, project_id, run_id, clones=0):
     #    """Start a new run."""
     #    self._put(
-    #        self.ws_api_url,
+    #        self.ws_url,
     #        f"/projects/{project_id}/runs/{run_id}/create",
     #        clones=clones,
     #    )
@@ -370,8 +370,8 @@ class FahAdaptiveSamplingClient:
         jobaction = JobAction(action=JobActionEnum.create)
 
         self._put(
-            self.ws_api_url,
-            f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}",
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}",
             **jobaction.dict(),
         )
 
@@ -380,8 +380,8 @@ class FahAdaptiveSamplingClient:
 
         return JobData(
             **self._get(
-                self.ws_api_url,
-                f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}",
+                self.ws_url,
+                f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}",
             )
         )
 
@@ -389,8 +389,8 @@ class FahAdaptiveSamplingClient:
         return [
             FileData(**i)
             for i in self._get(
-                self.ws_api_url,
-                f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",
+                self.ws_url,
+                f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",
             )
         ]
 
@@ -410,7 +410,7 @@ class FahAdaptiveSamplingClient:
         return [
             FileData(**i)
             for i in self._upload(
-                self.ws_api_url, f"/projects/{project_id}/files/{dest}", src
+                self.ws_url, f"/api/projects/{project_id}/files/{dest}", src
             )
         ]
 
@@ -428,8 +428,8 @@ class FahAdaptiveSamplingClient:
         return [
             FileData(**i)
             for i in self._delete(
-                self.ws_api_url,
-                f"/projects/{project_id}/files/{path}",
+                self.ws_url,
+                f"/api/projects/{project_id}/files/{path}",
             )
         ]
 
@@ -437,21 +437,21 @@ class FahAdaptiveSamplingClient:
         return [
             FileData(**i)
             for i in self._get(
-                self.ws_api_url,
-                f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/gens/{gen_id}/files",
+                self.ws_url,
+                f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/gens/{gen_id}/files",
             )
         ]
 
     # def get_xtcs(self, project_id, run_id, clone_id):
     #    data = self._get(
-    #        self.ws_api_url,
+    #        self.ws_url,
     #        f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",
     #    )
 
     #    for info in data:
     #        if info["path"].endswith(".xtc"):
     #            self._download(
-    #                self.ws_api_url,
+    #                self.ws_url,
     #                f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{info['path']}",
     #                info["path"],
     #            )
