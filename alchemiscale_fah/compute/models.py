@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from ipaddress import ip_address
+from ipaddress import IPv4Address
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -95,7 +95,7 @@ class ASWorkServerData(FahAdaptiveSamplingModel):
 
 
 class ASProjectData(FahAdaptiveSamplingModel):
-    ws: ip_address = Field(..., description="IP Address of the WS.")
+    ws: IPv4Address = Field(..., description="IP Address of the WS.")
     weight: float = Field(..., description="The project weight.")
     contraints: str = Field(
         ..., description="Project constraints as defined in the AS online help."

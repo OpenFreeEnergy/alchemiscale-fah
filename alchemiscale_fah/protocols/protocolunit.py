@@ -37,6 +37,8 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         """Generate a core file from the Protocol's settings."""
         ...
 
+        #TODO for options set to `None`, don't include in core file
+
     async def _execute(self, ctx: FahContext, *, setup, settings, **inputs):
         # take serialized system, state, integrator from SetupUnit
         system_file = setup.outputs["system"]
