@@ -10,7 +10,7 @@ from openff.units import unit
 from feflow.protocols.nonequilibrium_cycling import NonEquilibriumCyclingProtocol
 
 from ..protocolunit import FahOpenMMSimulationUnit
-from ...settings.fah_settings import FahCoreSettings
+from ...settings.fah_settings import FahOpenMMCoreSettings
 
 
 class FahNonEqulibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
@@ -31,5 +31,5 @@ class FahNonEqulibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
             system_settings=SystemSettings(),
             solvation_settings=SolvationSettings(),
             alchemical_settings=AlchemicalSettings(),
-            fah_settings=FahCoreSettings()
+            fah_settings=FahOpenMMCoreSettings()
         )
