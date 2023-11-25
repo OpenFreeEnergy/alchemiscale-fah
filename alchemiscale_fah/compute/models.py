@@ -61,6 +61,10 @@ class ProjectData(FahAdaptiveSamplingModel):
     )
     compression: CompressionTypeEnum = Field(..., description="Enable WU compression.")
 
+    # TODO: add validator to preconvert emails from strings
+    # TODO: add validator to preconvert core_id from string
+    # TODO: add validator to handle compression case insensitive
+
 
 class JobData(FahAdaptiveSamplingModel):
     project: int = Field(..., description="The project ID.")

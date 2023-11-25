@@ -13,6 +13,7 @@ from ..protocolunit import FahOpenMMSimulationUnit
 from ...settings.fah_settings import FahOpenMMCoreSettings
 
 
+# TODO: add validators to inputs to ensure good behavior on Folding@Home
 class FahNonEqulibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
     _simulation_unit = FahOpenMMSimulationUnit
 

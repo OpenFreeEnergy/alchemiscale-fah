@@ -22,8 +22,6 @@ from .models import (
     ProjectData,
     ASWorkServerData,
     ASProjectData,
-    JobAction,
-    JobActionEnum,
     JobData,
     JobResults,
     FileData,
@@ -153,7 +151,7 @@ class FahAdaptiveSamplingClient:
 
     def as_get_ws(self) -> ASWorkServerData:
         """Get work server attributes from assignment server."""
-        return ASWorkServerData(**self._get(self.as_url, f"/ws/{self.ws_ip_addr}"))
+        return ASWorkServerData(**self._get(self.as_url, f"/api/ws/{self.ws_ip_addr}"))
 
     def as_set_ws(self, as_workserver_data: ASWorkServerData):
         """Set work server attributes on assignment server."""
@@ -367,12 +365,9 @@ class FahAdaptiveSamplingClient:
     def create_clone(self, project_id, run_id, clone_id):
         """Start a new CLONE for a given RUN."""
 
-        jobaction = JobAction(action=JobActionEnum.create)
-
         self._put(
             self.ws_url,
-            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}",
-            **jobaction.dict(),
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/create",
         )
 
     def get_clone(self, project_id, run_id, clone_id) -> JobData:
