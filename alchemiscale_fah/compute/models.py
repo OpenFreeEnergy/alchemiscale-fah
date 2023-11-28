@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from typing import Optional
 from ipaddress import IPv4Address
 from datetime import datetime
 
@@ -14,27 +15,22 @@ class JobActionEnum(Enum):
 
 
 class CompressionTypeEnum(Enum):
-    none = "none"
-    bzip2 = "bzip2"
-    zlib = "zlib"
-    gzip = "gzip"
-    lz4 = "lz4"
+    NONE = "NONE"
+    BZIP2 = "BZIP2"
+    ZLIB = "ZLIB"
+    GZIP = "GZIP"
+    LZ4 = "LZ4"
 
 
 class JobStateEnum(Enum):
-    new = "new"
-    ready = "ready"
-    assigned = "assigned"
-    finished = "finished"
-    failed = "failed"
-    stopped = "stopped"
-    held = "held"
-    processing = "processing"
-
-
-class Email(BaseModel):
-    domain: str
-    user: str
+    NEW = "NEW"
+    READY = "READY"
+    ASSIGNED = "ASSIGNED"
+    FINISHED = "FINISHED"
+    FAILED = "FAILED"
+    STOPPED = "STOPPED"
+    HELD = "HELD"
+    PROCESSING = "PROCESSING"
 
 
 class FahAdaptiveSamplingModel(BaseModel):
@@ -46,8 +42,8 @@ class JobAction(FahAdaptiveSamplingModel):
 
 
 class ProjectData(FahAdaptiveSamplingModel):
-    core_id: int = Field(..., description="The core ID.  E.g. 0xa8.")
-    contact: Email = Field(..., description="The person responsible for the project.")
+    core_id: str = Field(..., description="The core ID.  E.g. 0xa8.")
+    contact: str = Field(..., description="Email of the person responsible for the project.")
     runs: int = Field(..., description="The number of runs.")
     clones: int = Field(..., description="The number of clones.")
     gens: int = Field(..., description="Maximum number of generations per job.")
@@ -67,12 +63,17 @@ class ProjectData(FahAdaptiveSamplingModel):
 
 
 class JobData(FahAdaptiveSamplingModel):
+    server: int = Field(..., description="ID for work server that executed this job.")
+    core: int = Field(..., description="ID for core that executed this job.")
     project: int = Field(..., description="The project ID.")
     run: int = Field(..., description="The job run.")
     clone: int = Field(..., description="The job clone.")
     gen: int = Field(..., description="The latest job generation.")
     state: JobStateEnum = Field(..., description="The current job state.")
-    last: datetime = Field(..., description="Last time the job state changed.")
+    last: Optional[datetime] = Field(None, description="Last time the job state changed.")
+    retries: Optional[int] = Field(None, description="Number of times the job has been retried.")
+    assigns: Optional[int] = Field(None, description="Number of times the job has been assigned.")
+    progress: Optional[int] = Field(None, description="Job progress.")
 
 
 class JobResults(FahAdaptiveSamplingModel):

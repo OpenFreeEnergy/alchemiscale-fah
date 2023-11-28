@@ -286,7 +286,7 @@ class FahAdaptiveSamplingClient:
             )
         ]
 
-    def get_project_jobs(self, project_id, since: datetime) -> JobResults:
+    def get_project_jobs(self, project_id, since: datetime = None) -> JobResults:
         """Get a list of all active jobs for the project.
 
         Parameters
@@ -297,9 +297,12 @@ class FahAdaptiveSamplingClient:
             If given, only list jobs that have been updated since this time.
 
         """
+        if since is not None:
+            since = since.isoformat()
+
         return JobResults(
             **self._get(
-                self.ws_url, f"/api/projects/{project_id}/jobs", since=since.isoformat()
+                self.ws_url, f"/api/projects/{project_id}/jobs", since=since
             )
         )
 
