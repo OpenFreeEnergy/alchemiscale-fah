@@ -5,12 +5,13 @@
 """
 
 import os
-import requests
+import socket
 from typing import Optional
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from pathlib import Path
 from datetime import datetime
 
+import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -33,16 +34,18 @@ class FahAdaptiveSamplingClient:
 
     def __init__(
         self,
-        as_url: str,
-        ws_url: str,
-        ws_ip_addr: str,
+        as_url: Optional[str] = None,
+        ws_url: Optional[str] = None,
         certificate_file: os.PathLike = "api-certificate.pem",
         key_file: os.PathLike = "api-private.pem",
         verify: bool = True,
     ):
-        self.as_url = as_url
-        self.ws_url = ws_url
-        self.ws_ip_addr = ws_ip_addr
+        as_url = urlparse(as_url)
+        ws_url = urlparse(ws_url)
+
+        self.as_url = as_url.geturl()
+        self.ws_url = ws_url.geturl()
+        self.ws_ip_addr = socket.gethostbyname(ws_url.hostname)
 
         self.certificate = self.read_certificate(certificate_file)
 
@@ -120,7 +123,7 @@ class FahAdaptiveSamplingClient:
         self._check_status(r)
         return r.json()
 
-    def _put(self, api_url, endpoint, **data):
+    def _put(self, api_url, endpoint, data=None):
         url = urljoin(api_url, endpoint)
         r = requests.put(url, json=data, cert=self.cert, verify=self.verify)
         self._check_status(r)
@@ -156,11 +159,11 @@ class FahAdaptiveSamplingClient:
     def as_set_ws(self, as_workserver_data: ASWorkServerData):
         """Set work server attributes on assignment server."""
         return self._put(
-            self.as_url, f"/api/ws/{self.ws_ip_addr}", **as_workserver_data
+            self.as_url, f"/api/ws/{self.ws_ip_addr}", as_workserver_data.dict()
         )
 
     def as_get_project(self, project_id) -> ASProjectData:
-        """Set project attributes on the assignment server."""
+        """Get project attributes on the assignment server."""
         return ASProjectData(
             **self._get(
                 self.as_url,
@@ -175,7 +178,7 @@ class FahAdaptiveSamplingClient:
         self._put(
             self.as_url,
             f"/api/ws/{self.ws_ip_addr}/projects/{project_id}",
-            **as_project_data.dict(),
+            as_project_data.dict(),
         )
 
     def as_reset_project(self, project_id):
@@ -188,14 +191,14 @@ class FahAdaptiveSamplingClient:
         self._put(
             self.as_url,
             f"/api/ws/{self.ws_ip_addr}/projects/{project_id}",
-            **as_project_data.dict(),
+            as_project_data.dict(),
         )
 
     def list_projects(self) -> dict[str, ProjectData]:
         return {key: ProjectData(**value) for key, value in self._get(self.ws_url, f"/api/projects").items()}
 
     def create_project(self, project_id, project_data: ProjectData):
-        self._put(self.ws_url, f"/api/projects/{project_id}", **project_data)
+        self._put(self.ws_url, f"/api/projects/{project_id}", project_data.dict())
 
     def update_project(self, project_id, project_data: ProjectData):
         self.create_project(project_id, project_data)
@@ -371,6 +374,38 @@ class FahAdaptiveSamplingClient:
         self._put(
             self.ws_url,
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/create",
+        )
+
+    def fail_clone(self, project_id, run_id, clone_id):
+        """Fail a CLONE for a given RUN."""
+
+        self._put(
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/fail",
+        )
+
+    def reset_clone(self, project_id, run_id, clone_id):
+        """Reset a CLONE for a given RUN."""
+
+        self._put(
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/reset",
+        )
+
+    def stop_clone(self, project_id, run_id, clone_id):
+        """Stop a CLONE for a given RUN."""
+
+        self._put(
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/stop",
+        )
+
+    def restart_clone(self, project_id, run_id, clone_id):
+        """Restart a CLONE for a given RUN."""
+
+        self._put(
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/restart",
         )
 
     def get_clone(self, project_id, run_id, clone_id) -> JobData:

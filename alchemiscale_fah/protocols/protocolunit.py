@@ -54,12 +54,13 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         available_projects = ctx.fah_client.list_projects()
 
         # sort projects in atom count order
-        # TODO: NEED TO CHOOSE AN ALGORITHMIC APPROACH TO SPAWNING NEW PROJECTS AS NEEDED
         for project_id, project_data in sorted(
             available_projects.items(), key=lambda item: item[1].atoms
         ):
             ...
             project_id
+
+        # TODO: need to also examine nonbonded settings for project selection
 
         # TODO: need to store some kind of state allowing compute service to go
         # down and come back up, resuming activity if it picks up a task it

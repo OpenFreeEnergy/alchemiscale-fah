@@ -6,14 +6,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class JobActionEnum(Enum):
-    create = "create"
-    fail = "fail"
-    reset = "reset"
-    stop = "stop"
-    restart = "restart"
-
-
 class CompressionTypeEnum(Enum):
     NONE = "NONE"
     BZIP2 = "BZIP2"
@@ -34,28 +26,26 @@ class JobStateEnum(Enum):
 
 
 class FahAdaptiveSamplingModel(BaseModel):
-    ...
-
-
-class JobAction(FahAdaptiveSamplingModel):
-    action: JobActionEnum
+    class Config:
+        use_enum_values = True
 
 
 class ProjectData(FahAdaptiveSamplingModel):
     core_id: str = Field(..., description="The core ID.  E.g. 0xa8.")
     contact: str = Field(..., description="Email of the person responsible for the project.")
-    runs: int = Field(..., description="The number of runs.")
-    clones: int = Field(..., description="The number of clones.")
-    gens: int = Field(..., description="Maximum number of generations per job.")
+    runs: int = Field(0, description="The number of runs.")
+    clones: int = Field(0, description="The number of clones.")
+    gens: int = Field(1, description="Maximum number of generations per job.")
     atoms: int = Field(
         ..., description="Approximate number of atoms in the simulations."
     )
     credit: int = Field(..., description="The base credit awarded for the WU.")
-    timeout: float = Field(..., description="Days before the WU can be reassigned.")
+    timeout: float = Field(86400.0, description="Days before the WU can be reassigned.")
     deadline: float = Field(
-        ..., description="Days in which the WU can be returned for credit."
+        172800.0, description="Days in which the WU can be returned for credit."
     )
-    compression: CompressionTypeEnum = Field(..., description="Enable WU compression.")
+    compression: CompressionTypeEnum = Field(CompressionTypeEnum.ZLIB,
+                                             description="Enable WU compression.")
 
     # TODO: add validator to preconvert emails from strings
     # TODO: add validator to preconvert core_id from string

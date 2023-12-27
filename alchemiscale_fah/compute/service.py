@@ -146,6 +146,8 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 keep_scratch=self.keep_scratch,
                 raise_error=False,
                 n_retries=self.settings.n_retries,
+                pool=self._pool,
+                fah_client=self.fah_client
             )
         finally:
             if not self.keep_shared:
@@ -372,7 +374,6 @@ async def execute_DAG(
             scratch.mkdir()
 
             context = FahContext(shared=shared, scratch=scratch, fah_client=fah_client)
-
             params = dict(context=context, raise_error=raise_error, **inputs)
 
             # if this is a FahProtocolUnit, then we await its execution in-process
