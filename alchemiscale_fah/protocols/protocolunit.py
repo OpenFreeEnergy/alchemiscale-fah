@@ -51,16 +51,6 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         ...
         #TODO for options set to `None`, don't include in core file
 
-    def place_run_files(self):
-        ...
-
-    def place_clone_files(
-        self, 
-        core_file: Path,
-        system_file: Path,
-        state_file: Path,
-        integrator_file: Path):
-        ...
 
     async def _execute(self, ctx: FahContext, *, setup, settings, **inputs):
         # take serialized system, state, integrator from SetupUnit
@@ -110,6 +100,11 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
             run_id = ctx.index.get_run_clone_next(project_id, run_id)
 
             # create CLONE for this Task
+            ctx.fah_client.create_clone_file_from_bytes(
+                    project_id, run_id, clone_id,
+                    str(ctx.task_sk).encode('utf-8'),
+                    'alchemiscale-task.txt'
+            )
             for filepath in (core_file, system_file, state_file, integrator_file):
                 ctx.fah_client.create_clone_file(
                         project_id, run_id, clone_id, 
