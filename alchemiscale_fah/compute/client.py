@@ -141,6 +141,11 @@ class FahAdaptiveSamplingClient:
             r = requests.put(url, data=f, cert=self.cert, verify=self.verify)
             self._check_status(r)
 
+    def _upload_bytes(self, api_url, endpoint, bytedata):
+        url = urljoin(api_url, endpoint)
+        r = requests.put(url, data=bytedata, cert=self.cert, verify=self.verify)
+        self._check_status(r)
+
     def _download(self, api_url, endpoint, filename):
         url = urljoin(api_url, endpoint)
         r = requests.get(url, cert=self.cert, verify=self.verify, stream=True)
@@ -148,11 +153,15 @@ class FahAdaptiveSamplingClient:
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-        with open(filename, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
+    def _download_bytes(self, api_url, endpoint, filename):
+        url = urljoin(api_url, endpoint)
+        r = requests.get(url, cert=self.cert, verify=self.verify, stream=True)
+        self._check_status(r)
 
+        bytedata = r.raw.read(decode_content=True)
         r.close()
+
+        return bytedata
 
     def as_get_ws(self) -> ASWorkServerData:
         """Get work server attributes from assignment server."""
@@ -245,12 +254,11 @@ class FahAdaptiveSamplingClient:
             Path relative to PROJECT directory to upload to.
 
         """
-        return [
-            FileData(**i)
-            for i in self._upload(
-                self.ws_url, f"/api/projects/{project_id}/files/{dest}", src
-            )
-        ]
+        self._upload(
+            self.ws_url,
+            f"/api/projects/{project_id}/files/{dest}",
+            src,
+        )
 
     def delete_project_file(self, project_id, path):
         """Delete a file from the PROJECT directory tree.
@@ -263,13 +271,10 @@ class FahAdaptiveSamplingClient:
             File to delete.
 
         """
-        return [
-            FileData(**i)
-            for i in self._delete(
+        self._delete(
                 self.ws_url,
                 f"/api/projects/{project_id}/files/{path}",
             )
-        ]
 
     def get_project_file(self, project_id, src, dest):
         """Download a file from the PROJECT directory tree.
@@ -284,22 +289,23 @@ class FahAdaptiveSamplingClient:
             Path to download file to.
 
         """
-        return [
-            FileData(**i)
-            for i in self._download(
+        self._download(
                 self.ws_url, f"/api/projects/{project_id}/files/{src}", dest
             )
-        ]
 
     def get_project_jobs(self, project_id, since: datetime = None) -> JobResults:
-        """Get a list of all active jobs for the project.
+        """Get all active jobs for the project.
 
         Parameters
         ----------
         project_id
             ID of the project
         since
-            If given, only list jobs that have been updated since this time.
+            If given, only include jobs that have been updated since this time.
+
+        Returns
+        -------
+        JobResults
 
         """
         if since is not None:
@@ -318,26 +324,18 @@ class FahAdaptiveSamplingClient:
             src,
         )
 
+    def create_run_file_from_bytes(self, project_id, run_id, bytedata: bytes, dest: Path):
+        self._upload_bytes(
+            self.ws_url,
+            f"/api/projects/{project_id}/files/RUN{run_id}/{dest}",
+            bytedata,
+        )
+
     def delete_run_file(self, project_id, run_id, path: Path):
         self._delete(
             self.ws_url,
             f"/api/projects/{project_id}/files/RUN{run_id}/{path}",
         )
-
-    def get_run_file(self, project_id, run_id, path: Path):
-        self._delete(
-            self.ws_url,
-            f"/api/projects/{project_id}/files/RUN{run_id}/{path}",
-        )
-
-    # provided by @jcoffland; not sure this is current
-    # def start_run(self, project_id, run_id, clones=0):
-    #    """Start a new run."""
-    #    self._put(
-    #        self.ws_url,
-    #        f"/projects/{project_id}/runs/{run_id}/create",
-    #        clones=clones,
-    #    )
 
     def create_clone(self, project_id, run_id, clone_id):
         """Start a new CLONE for a given RUN."""
@@ -398,44 +396,19 @@ class FahAdaptiveSamplingClient:
             )
         ]
 
-    def create_clone_file(self, project_id, src: Path, dest: Path):
-        """Upload a file to the PROJECT directory tree.
+    def create_clone_file(self, project_id, run_id, clone_id, src: Path, dest: Path):
+        self._upload(
+            self.ws_url,
+            f"/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{dest}",
+            src,
+        )
 
-        Parameters
-        ----------
-        project_id
-            ID of the project
-        src
-            File to upload.
-        dest
-            Path relative to PROJECT directory to upload to.
-
-        """
-        return [
-            FileData(**i)
-            for i in self._upload(
-                self.ws_url, f"/api/projects/{project_id}/files/{dest}", src
-            )
-        ]
-
-    def delete_clone_file(self, project_id, path):
-        """Delete a file from the PROJECT directory tree.
-
-        Parameters
-        ----------
-        project_id
-            ID of the project
-        path
-            File to delete.
-
-        """
-        return [
-            FileData(**i)
-            for i in self._delete(
-                self.ws_url,
-                f"/api/projects/{project_id}/files/{path}",
-            )
-        ]
+    def create_clone_result_file(self, project_id, run_id, clone_id, src: Path, dest: Path):
+        self._upload(
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{dest}",
+            src,
+        )
 
     def list_gen_files(self, project_id, run_id, clone_id, gen_id) -> list[FileData]:
         return [
@@ -445,17 +418,3 @@ class FahAdaptiveSamplingClient:
                 f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/gens/{gen_id}/files",
             )
         ]
-
-    # def get_xtcs(self, project_id, run_id, clone_id):
-    #    data = self._get(
-    #        self.ws_url,
-    #        f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files",
-    #    )
-
-    #    for info in data:
-    #        if info["path"].endswith(".xtc"):
-    #            self._download(
-    #                self.ws_url,
-    #                f"/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{info['path']}",
-    #                info["path"],
-    #            )

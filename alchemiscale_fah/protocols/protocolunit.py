@@ -78,50 +78,53 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         # choose a PROJECT for this Transformation and create a RUN for it;
         # also need to create a CLONE for this Task
         if project_id is None and run_id is None:
-            # create core file from settings
-            core_file = self.generate_core_file(settings)
 
             # select PROJECT to use for execution
             project_id = self.select_project(ctx.fah_projects, settings)
 
-            # get PROJECT RUNs; select next RUN id
+            # get next available RUN id
             run_id = ctx.index.get_project_run_next(project_id)
 
-            # create RUN for this Transformation, CLONE for this Task
-            ctx.fah_client.create_run_file(project_id, run_id)
-            self.place_clone_files(
-                    core_file,
-                    system_file,
-                    state_file,
-                    integrator_file
+            # create RUN for this Transformation
+            ctx.fah_client.create_run_file_from_bytes(
+                    project_id, run_id,
+                    str(ctx.transformation_sk.gufe_key).encode('utf-8'),
+                    'alchemiscale-transformation.txt'
             )
-
-            ctx.index.set_run(FahRun(transformation_key=str(ctx.transformation_sk.gufe_key)))
+            ctx.index.set_transformation(
+                    ctx.transformation_sk.gufe_key,
+                    project_id,
+                    run_id
+            )
 
         # if we got PROJECT and RUN IDs, but no CLONE ID, it means this Task
         # has never been seen before on this work server, but the
         # Transformation has; we use the existing PROJECT and RUN but create a
         # new CLONE
-        elif clone_id is None:
-            ...
+        if clone_id is None:
 
-        # if we got PROJECT, RUN, and CLONE IDs, then this Task has been seen
-        # before on this work server; we use the results if they exist
-        else:
-            ...
-            
+            # create core file from settings
+            core_file = self.generate_core_file(settings)
 
-        # get RUN Transformation
+            # get next available CLONE id
+            run_id = ctx.index.get_run_clone_next(project_id, run_id)
 
-        # pass to work server, create RUN/CLONE as appropriate
-        run_id = ctx.fah_client.create_run(
-            project_id, core_file, system_file, state_file, integrator_file
-        )
-        ctx.fah_client.start_run_clone(project_id, run_id, 0)
+            # create CLONE for this Task
+            for filepath in (core_file, system_file, state_file, integrator_file):
+                ctx.fah_client.create_clone_file(
+                        project_id, run_id, clone_id, 
+                        filepath, filepath.name)
+            ctx.index.set_task(
+                    ctx.task_sk,
+                    project_id,
+                    run_id,
+                    clone_id
+            )
+            ctx.fah_client.create_clone(project_id, run_id, clone_id)
 
         while True:
             # check for and await sleep results from work server
-            jobdata = ctx.fah_client.get_run_clone(project_id, run_id, 0)
+            jobdata = ctx.fah_client.get_clone(project_id, run_id, clone_id)
 
             if jobdata.state == JobStateEnum.finished:
                 break
@@ -134,10 +137,6 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
             else:
                 await asyncio.sleep(ctx.fah_poll_sleep)
 
-        # when results available, put them into useful form
-        # may be a case where colocation of service on work server pretty
-        # critical for performance; prefer not to pull large files out of host
-        # will be very dependent on what `openmm-core` outputs;
-        # can influence this if it's putting things out in an obtuse or incomplete form
+        # read in results from `globals.csv`
 
         # return results for consumption by ResultUnit

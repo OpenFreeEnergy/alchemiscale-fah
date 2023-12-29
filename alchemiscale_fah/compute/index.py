@@ -24,12 +24,12 @@ class FahComputeServiceIndex:
     def __init__(self, index_file: os.PathLike, obj_store: os.PathLike):
         self.db = plyvel.DB(index_file, create_if_missing=True)
 
-        self.projects = self.db.prefixed_db(b"projects/")
-        self.runs = self.db.prefixed_db(b"runs/")
-        self.clones = self.db.prefixed_db(b"clones/")
+        #self.projects = self.db.prefixed_db(b"projects/")
+        #self.runs = self.db.prefixed_db(b"runs/")
+        #self.clones = self.db.prefixed_db(b"clones/")
 
-        self.transformations = self.db.prefixed_db(b"transformations/")
-        self.tasks = self.db.prefixed_db(b"tasks/")
+        #self.transformations = self.db.prefixed_db(b"transformations/")
+        #self.tasks = self.db.prefixed_db(b"tasks/")
 
         self.obj_store = Path(obj_store).absolute()
         os.makedirs(obj_store, exist_ok=True)
@@ -38,7 +38,7 @@ class FahComputeServiceIndex:
         """Set the metadata for the given PROJECT.
 
         """
-        key = f"projects/PROJ{project_id}".encode('utf-8')
+        key = f"projects/{project_id}".encode('utf-8')
         value = fah_project.json().encode('utf-8')
 
         self.db.put(key, value)
@@ -47,7 +47,7 @@ class FahComputeServiceIndex:
         """Get metadata for the given PROJECT.
 
         """
-        key = f"projects/PROJ{project_id}".encode('utf-8')
+        key = f"projects/{project_id}".encode('utf-8')
         value = self.db.get(key).decode('utf-8')
 
         if value is not None:
@@ -59,8 +59,8 @@ class FahComputeServiceIndex:
         """Get next available RUN id for the given PROJECT.
 
         """
-        prefix = f"runs/PROJ{project_id}-".encode('utf-8')
-        run_ids = sorted([int(key.split('RUN')[1]) for key in 
+        prefix = f"runs/{project_id}-".encode('utf-8')
+        run_ids = sorted([int(key.split('-')[-1]) for key in 
                    self.db.iterator(prefix=prefix, include_value=False)])
 
         return str(run_ids[-1] + 1)
@@ -72,13 +72,13 @@ class FahComputeServiceIndex:
 
         """
         with self.db.write_batch(transaction=True) as wb:
-            key = f"runs/PROJ{project_id}-RUN{run_id}".encode('utf-8')
+            key = f"runs/{project_id}-{run_id}".encode('utf-8')
             value = fah_run.json().encode('utf-8')
 
             wb.put(key, value)
 
             key = f"transformations/{fah_run.transformation}".encode('utf-8')
-            value = f"{project_id},{run_id}".encode('utf-8')
+            value = f"{project_id}-{run_id}".encode('utf-8')
 
             wb.put(key, value)
 
@@ -86,7 +86,7 @@ class FahComputeServiceIndex:
         """Get metadata for the given RUN.
 
         """
-        key = f"runs/PROJ{project_id}-RUN{run_id}".encode('utf-8')
+        key = f"runs/{project_id}-{run_id}".encode('utf-8')
         value = self.db.get(key).decode('utf-8')
 
         if value is not None:
@@ -98,8 +98,8 @@ class FahComputeServiceIndex:
         """Get metadata for the given RUN.
 
         """
-        prefix = f"clones/PROJ{project_id}-RUN{run_id}-".encode('utf-8')
-        run_ids = sorted([int(key.split('CLONE')[1]) for key in 
+        prefix = f"clones/{project_id}-{run_id}-".encode('utf-8')
+        run_ids = sorted([int(key.split('-')[-1]) for key in 
                    self.db.iterator(prefix=prefix, include_value=False)])
 
         return str(run_ids[-1] + 1)
@@ -111,13 +111,13 @@ class FahComputeServiceIndex:
 
         """
         with self.db.write_batch(transaction=True) as wb:
-            key = f"clones/PROJ{project_id}-RUN{run_id}-CLONE{clone_id}".encode('utf-8')
+            key = f"clones/{project_id}-{run_id}-{clone_id}".encode('utf-8')
             value = fah_clone.json().encode('utf-8')
 
             wb.put(key, value)
 
             key = f"tasks/{fah_clone.task_sk}".encode('utf-8')
-            value = f"{project_id},{run_id},{clone_id}".encode('utf-8')
+            value = f"{project_id}-{run_id}-{clone_id}".encode('utf-8')
 
             wb.put(key, value)
 
@@ -126,7 +126,7 @@ class FahComputeServiceIndex:
         """Get metadata for the given CLONE.
 
         """
-        key = f"clones/PROJ{project_id}-RUN{run_id}-CLONE{clone_id}".encode('utf-8')
+        key = f"clones/{project_id}-{run_id}-{clone_id}".encode('utf-8')
         value = self.db.get(key).decode('utf-8')
 
         if value is not None:
@@ -142,11 +142,11 @@ class FahComputeServiceIndex:
         """
         with self.db.write_batch(transaction=True) as wb:
             key = f"transformations/{transformation}".encode('utf-8')
-            value = f"{project_id},{run_id}".encode('utf-8')
+            value = f"{project_id}-{run_id}".encode('utf-8')
 
             wb.put(key, value)
 
-            key = f"runs/PROJ{project_id}-RUN{run_id}".encode('utf-8')
+            key = f"runs/{project_id}-{run_id}".encode('utf-8')
             value = FahRun(transformation_key=str(transformation)).json().encode('utf-8')
 
             wb.put(key, value)
@@ -159,7 +159,7 @@ class FahComputeServiceIndex:
         value = self.db.get(key).decode('utf-8')
 
         if value is not None:
-            value = value.split(',')
+            value = value.split('-')
         else:
             value = (None, None)
 
@@ -173,11 +173,11 @@ class FahComputeServiceIndex:
         """
         with self.db.write_batch(transaction=True) as wb:
             key = f"tasks/{task}".encode('utf-8')
-            value = f"{project_id},{run_id},{clone_id}".encode('utf-8')
+            value = f"{project_id}-{run_id}-{clone_id}".encode('utf-8')
 
             wb.put(key, value)
 
-            key = f"clones/PROJ{project_id}-RUN{run_id}-CLONE{clone_id}".encode('utf-8')
+            key = f"clones/{project_id}-{run_id}-{clone_id}".encode('utf-8')
             value = FahClone(task_sk=task).json().encode('utf-8')
 
             wb.put(key, value)
@@ -190,7 +190,7 @@ class FahComputeServiceIndex:
         value = self.db.get(key).decode('utf-8')
 
         if value is not None:
-            value = value.split(',')
+            value = value.split('-')
         else:
             value = (None, None, None)
 
@@ -202,9 +202,10 @@ class FahComputeServiceIndex:
         """
         # TODO: add zstandard compression
         protocoldag_path = self.obj_store / 'tasks' / str(task) / 'protocoldag.json'
+        protocoldag_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(protocoldag_path, 'w') as f:
-            json.dump(gufe_to_keyed_dicts(protocoldag), f)
+            json.dump(gufe_to_keyed_dicts(protocoldag), f, cls=JSON_HANDLER.encoder)
 
         return protocoldag_path
 
