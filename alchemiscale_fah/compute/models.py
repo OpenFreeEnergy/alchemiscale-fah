@@ -5,6 +5,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from alchemiscale.models import ScopedKey
+
+
+# FahAdaptiveSamplingClient models
 
 class CompressionTypeEnum(Enum):
     NONE = "NONE"
@@ -95,3 +99,17 @@ class ASProjectData(FahAdaptiveSamplingModel):
     contraints: str = Field(
         ..., description="Project constraints as defined in the AS online help."
     )
+
+
+# FahAsynchronousComputeService models
+
+# TODO: documentation and enum for nonbonded_settings
+class FahProject(BaseModel):
+    n_atoms: int
+    nonbonded_settings: str
+
+class FahRun(BaseModel):
+    transformation_key: str
+
+class FahClone(BaseModel):
+    task_sk: ScopedKey

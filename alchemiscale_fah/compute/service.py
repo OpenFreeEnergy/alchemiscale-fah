@@ -28,8 +28,10 @@ from alchemiscale.compute.service import (
     SleepInterrupted,
 )
 
+from .models import FahProject
 from .settings import FAHSynchronousComputeServiceSettings
 from .client import FahAdaptiveSamplingClient
+from .index import FahComputeServiceIndex
 from ..protocols.protocolunit import FahSimulationUnit, FahContext
 
 
@@ -56,7 +58,20 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             verify=self.settings.client_verify,
         )
 
-        self.fah_client = FahAdaptiveSamplingClient(...)
+        self.fah_project_ids = self.settings.fah_project_ids
+
+        self.index_file = Path(self.settings.index_file).absolute()
+        self.obj_store = Path(self.settings.obj_store).absolute()
+
+        self.fah_projects = [self.index.get_project(p) for p in self.fah_project_ids]
+
+        self.fah_client = FahAdaptiveSamplingClient(
+            as_url=self.settings.fah_as_url,
+            ws_url=self.settings.fah_ws_url,
+            certificate_file=self.settings.fah_certificate_file,
+            key_file=self.settings.fah_key_file,
+            verify=self.settings.fah_client_verify,
+        )
 
         if self.settings.scopes is None:
             self.scopes = [Scope()]
@@ -100,6 +115,20 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         self.heartbeat_thread = None
 
+
+    @classmethod
+    def update_index(settings: FAHSynchronousComputeServiceSettings):
+        # TODO: need to store some kind of state allowing compute service to go
+        # down and come back up, resuming activity if it picks up a task it
+        # was working on previously
+
+        # open index
+        index = FahComputeServiceIndex(settings.index_file, settings.obj_store)
+
+        ...
+
+        index.db.close()
+
     def _refresh_heartbeat_thread(self):
         if self.heartbeat_thread is None:
             self.heartbeat_thread = threading.Thread(target=self.heartbeat, daemon=True)
@@ -116,15 +145,29 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         Returns ScopedKey of ProtocolDAGResultRef following push to database.
 
         """
-        # obtain a ProtocolDAG from the task
-        self.logger.info("Creating ProtocolDAG from '%s'...", task)
-        protocoldag, transformation, extends = self.task_to_protocoldag(task)
-        self.logger.info(
-            "Created '%s' from '%s' performing '%s'",
-            protocoldag,
-            task,
-            transformation.protocol,
-        )
+        # check if Task seen before, serialized ProtocolDAG present
+        # use that ProtocolDAG instead and feed to `execute_DAG`
+        project_id, run_id, clone_id = self.index.get_task(task)
+
+        if project_id is not None:
+            protocoldag = self.index.get_task_protocoldag(task)
+        else:
+            # check if we have seen this Transformation before
+            # get PROJECT, RUN if so
+            tf_sk = self.client.get_task_transformation(task)
+            project_id, run_id = self.index.get_transformation(tf_sk.gufe_key)
+            clone_id = None
+
+            # obtain a ProtocolDAG from the task
+            self.logger.info("Creating ProtocolDAG from '%s'...", task)
+            protocoldag, transformation, extends = self.task_to_protocoldag(task)
+            self.logger.info(
+                "Created '%s' from '%s' performing '%s'",
+                protocoldag,
+                task,
+                transformation.protocol,
+            )
+            self.index.set_task_protocoldag(task, protocoldag)
 
         # execute the task; this looks the same whether the ProtocolDAG is a
         # success or failure
@@ -147,7 +190,12 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 raise_error=False,
                 n_retries=self.settings.n_retries,
                 pool=self._pool,
-                fah_client=self.fah_client
+                fah_client=self.fah_client,
+                fah_projects=self.fah_projects,
+                project_run_clone=(project_id, run_id, clone_id),
+                transformation_sk=tf_sk,
+                task_sk=task,
+                index=self.index
             )
         finally:
             if not self.keep_shared:
@@ -274,6 +322,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # create process pool
         self._pool = ProcessPoolExecutor()
 
+        # open index
+        self.index = FahComputeServiceIndex(self.index_file, self.obj_store)
+
         # TODO: add running count of successes/failures, log to output
         try:
             self.logger.info("Starting main loop")
@@ -295,6 +346,10 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             self._stop = True
             # remove ComputeServiceRegistration, drop all claims
             self._deregister()
+            
+            # close index
+            self.index.db.close()
+
             self.logger.info(
                 "Deregistered service with registration '%s'",
                 str(self.compute_service_id),
@@ -317,6 +372,11 @@ async def execute_DAG(
     n_retries: int = 0,
     pool: ProcessPoolExecutor,
     fah_client: FahAdaptiveSamplingClient,
+    fah_projects: List[FahProject],
+    project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]],
+    transformation_sk: ScopedKey,
+    task_sk: ScopedKey,
+    index: FahComputeServiceIndex
 ) -> ProtocolDAGResult:
     """
     Locally execute a full :class:`ProtocolDAG` in serial and in-process.
@@ -344,6 +404,20 @@ async def execute_DAG(
     n_retries : int
         the number of times to attempt, default 0, i.e. try once and only once
 
+    pool
+
+    fah_client
+
+    fah_projects
+
+    project_run_clone
+
+    transformation_sk
+
+    task_sk
+
+    index
+
     Returns
     -------
     ProtocolDAGResult
@@ -360,6 +434,9 @@ async def execute_DAG(
     all_results = []  # successes AND failures
     shared_paths = []
     for unit in protocoldag.protocol_units:
+        # TODO: for each unit, check that results already exist; if so, use these
+        # and skip forward
+
         # translate each `ProtocolUnit` in input into corresponding
         # `ProtocolUnitResult`
         inputs = _pu_to_pur(unit.inputs, results)
@@ -373,7 +450,15 @@ async def execute_DAG(
             scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
             scratch.mkdir()
 
-            context = FahContext(shared=shared, scratch=scratch, fah_client=fah_client)
+            context = FahContext(shared=shared,
+                                 scratch=scratch,
+                                 fah_client=fah_client,
+                                 fah_projects=fah_projects,
+                                 project_run_clone=project_run_clone,
+                                 transformation_sk=transformation_sk,
+                                 task_sk=task_sk,
+                                 index=index)
+
             params = dict(context=context, raise_error=raise_error, **inputs)
 
             # if this is a FahProtocolUnit, then we await its execution in-process

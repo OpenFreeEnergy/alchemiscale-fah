@@ -152,3 +152,11 @@ def compute():
 )
 def fah_asynchronous():
     ...
+
+
+@compute.command(
+    name="initialize-state",
+    help="Initialize statefile for FahAsynchronousComputeService",
+)
+def initialize_state():
+    ...

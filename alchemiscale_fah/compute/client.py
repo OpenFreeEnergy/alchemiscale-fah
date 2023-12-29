@@ -32,6 +32,8 @@ from .models import (
 class FahAdaptiveSamplingClient:
     """Client for interacting with a Folding@Home assignment and work server."""
 
+    # TODO: add automatic cert refreshes on requests based on remaining lifetime
+
     def __init__(
         self,
         as_url: Optional[str] = None,
@@ -308,37 +310,6 @@ class FahAdaptiveSamplingClient:
                 self.ws_url, f"/api/projects/{project_id}/jobs", since=since
             )
         )
-
-    def create_run(
-        self,
-        project_id,
-        core_file: Path,
-        system_file: Path,
-        state_file: Path,
-        integrator_file: Path,
-    ) -> int:
-        # choose next available run_id from number of runs in project
-        project_data = self.get_project(project_id)
-        run_id = project_data.runs
-
-        # add files for this run to project directory
-        for filepath in [core_file, system_file, state_file, integrator_file]:
-            self._upload(
-                self.ws_url,
-                f"/api/projects/{project_id}/files/RUN{run_id}/{filepath.name}",
-                filepath,
-            )
-
-        # update project data with new run count
-        # NOTE: is this really necessary???
-        # does the WS do this on its own?
-        # need clarity on what runs,clones,gens counts in project data actually do
-        project_data_ = project_data.dict()
-        project_data_["runs"] = project_data.runs + 1
-        project_data_ = ProjectData(**project_data_)
-        self.update_project(project_id, project_data_)
-
-        return run_id
 
     def create_run_file(self, project_id, run_id, src: Path, dest: Path):
         self._upload(

@@ -4,15 +4,18 @@
 
 """
 
+from typing import List, Tuple, Optional
 import asyncio
 from dataclasses import dataclass
 
 from gufe.protocols.protocolunit import ProtocolUnit, Context
 from gufe.settings import Settings
+from alchemiscale.models import ScopedKey
 from feflow.utils.data import deserialize
 
 from ..compute.client import FahAdaptiveSamplingClient
-from ..compute.models import JobStateEnum
+from ..compute.models import JobStateEnum, FahProject, FahRun, FahClone
+from ..compute.index import FahComputeServiceIndex
 
 
 class FahExecutionException(RuntimeError):
@@ -23,6 +26,11 @@ class FahExecutionException(RuntimeError):
 class FahContext(Context):
     fah_client: FahAdaptiveSamplingClient
     fah_poll_sleep: 60
+    fah_projects: list[FahProject]
+    project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]]
+    transformation_sk: ScopedKey
+    task_sk: ScopedKey
+    index: FahComputeServiceIndex
 
 
 class FahSimulationUnit(ProtocolUnit):
@@ -33,11 +41,26 @@ class FahSimulationUnit(ProtocolUnit):
 
 
 class FahOpenMMSimulationUnit(FahSimulationUnit):
-    def generate_core_file(settings: Settings):
+
+    def select_project(self, fah_projects: List[FahProject], settings: Settings):
+        ...
+        # TODO: need to also examine nonbonded settings for project selection
+
+    def generate_core_file(self, settings: Settings):
         """Generate a core file from the Protocol's settings."""
         ...
-
         #TODO for options set to `None`, don't include in core file
+
+    def place_run_files(self):
+        ...
+
+    def place_clone_files(
+        self, 
+        core_file: Path,
+        system_file: Path,
+        state_file: Path,
+        integrator_file: Path):
+        ...
 
     async def _execute(self, ctx: FahContext, *, setup, settings, **inputs):
         # take serialized system, state, integrator from SetupUnit
@@ -49,25 +72,46 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         system = deserialize(system_file)
         n_atoms = system.getNumParticles()
 
-        # check projects available from work server
-        # compare number of atoms to that of this system
-        available_projects = ctx.fah_client.list_projects()
+        project_id, run_id, clone_id = ctx.project_run_clone
 
-        # sort projects in atom count order
-        for project_id, project_data in sorted(
-            available_projects.items(), key=lambda item: item[1].atoms
-        ):
+        # if we haven't been assigned PROJECT and RUN IDs, then we need to
+        # choose a PROJECT for this Transformation and create a RUN for it;
+        # also need to create a CLONE for this Task
+        if project_id is None and run_id is None:
+            # create core file from settings
+            core_file = self.generate_core_file(settings)
+
+            # select PROJECT to use for execution
+            project_id = self.select_project(ctx.fah_projects, settings)
+
+            # get PROJECT RUNs; select next RUN id
+            run_id = ctx.index.get_project_run_next(project_id)
+
+            # create RUN for this Transformation, CLONE for this Task
+            ctx.fah_client.create_run_file(project_id, run_id)
+            self.place_clone_files(
+                    core_file,
+                    system_file,
+                    state_file,
+                    integrator_file
+            )
+
+            ctx.index.set_run(FahRun(transformation_key=str(ctx.transformation_sk.gufe_key)))
+
+        # if we got PROJECT and RUN IDs, but no CLONE ID, it means this Task
+        # has never been seen before on this work server, but the
+        # Transformation has; we use the existing PROJECT and RUN but create a
+        # new CLONE
+        elif clone_id is None:
             ...
-            project_id
 
-        # TODO: need to also examine nonbonded settings for project selection
+        # if we got PROJECT, RUN, and CLONE IDs, then this Task has been seen
+        # before on this work server; we use the results if they exist
+        else:
+            ...
+            
 
-        # TODO: need to store some kind of state allowing compute service to go
-        # down and come back up, resuming activity if it picks up a task it
-        # was working on previously
-
-        # create core file from settings
-        core_file = self.generate_core_file(settings)
+        # get RUN Transformation
 
         # pass to work server, create RUN/CLONE as appropriate
         run_id = ctx.fah_client.create_run(
