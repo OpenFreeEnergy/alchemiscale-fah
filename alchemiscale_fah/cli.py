@@ -112,10 +112,18 @@ def generate_atom_counts(lower, upper, n_projects, nonbonded_settings):
         type=str,
         required=True,
     )
+@click.option(
+        "--key-file",
+        "-k",
+        help="Private key to use for TLS responses",
+        type=str,
+        required=True,
+    )
 def create_project(project_id, core_id, contact_email, n_atoms,
                    nonbonded_settings, ws_url, certificate_file, key_file):
-    from .compute.models import ProjectData
+    from .compute.models import ProjectData, FahProject
     from .compute.client import FahAdaptiveSamplingClient
+    from .compute.index import FahComputeServiceIndex
     from .utils import NONBONDED_EFFORT, NonbondedSettings, assign_credit
 
     # assign credit based on effort function
@@ -139,6 +147,22 @@ def create_project(project_id, core_id, contact_email, n_atoms,
                                      key_file=key_file)
 
     fahc.create_project(project_id, project_data)
+
+    # create entry in index for this PROJECT
+    fah_project = FahProject(
+            project_id=project_id,
+            n_atoms=n_atoms,
+            nonbonded_settings=nonbonded_settings)
+
+    #index = FahComputeServiceIndex(index_file)
+    #index.set_project(project_id, fah_project)
+    #index.db.close()
+
+    # add file to PROJECT dir that can be used to rebuild index
+    fahc.create_project_file_from_bytes(
+                    project_id, fah_project.json().encode('utf-8'),
+                    'alchemiscale-project.txt'
+            )
 
 
 @cli.group(help="Subcommands for compute services")

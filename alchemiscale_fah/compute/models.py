@@ -105,11 +105,17 @@ class ASProjectData(FahAdaptiveSamplingModel):
 
 # TODO: documentation and enum for nonbonded_settings
 class FahProject(BaseModel):
+    project_id: str
     n_atoms: int
     nonbonded_settings: str
 
 class FahRun(BaseModel):
+    project_id: str
+    run_id: str
     transformation_key: str
 
 class FahClone(BaseModel):
+    project_id: str
+    run_id: str
+    clone_id: str
     task_sk: ScopedKey

@@ -42,9 +42,24 @@ class FahSimulationUnit(ProtocolUnit):
 
 class FahOpenMMSimulationUnit(FahSimulationUnit):
 
-    def select_project(self, fah_projects: List[FahProject], settings: Settings):
+    def select_project(self, n_atoms: int, fah_projects: List[FahProject], settings: Settings):
+        """Select the PROJECT with the nearest effort to the given Transformation.
+
+        "Effort" is a function of the number of atoms in the system and the
+        nonbonded settings in use.
+
+        """
+
+        nonbonded_settings = settings.system_settings.nonbonded_method
+
+        # get only PROJECTs with matching nonbonded settings
+        eligible_projects = [fah_project for fah_project in fah_projects
+                             if fah_project.nonbonded_settings == nonbonded_settings]
+
+        # get efforts for each project, select project with closest effort to
+        # this Transformation
         ...
-        # TODO: need to also examine nonbonded settings for project selection
+
 
     def generate_core_file(self, settings: Settings):
         """Generate a core file from the Protocol's settings."""

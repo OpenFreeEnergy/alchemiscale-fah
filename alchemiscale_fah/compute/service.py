@@ -63,7 +63,12 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self.index_file = Path(self.settings.index_file).absolute()
         self.obj_store = Path(self.settings.obj_store).absolute()
 
-        self.fah_projects = [self.index.get_project(p) for p in self.fah_project_ids]
+        # get PROJECT data from metadata files in each PROJECT
+        self.fah_projects = [
+                FahProject.parse_raw(
+                    self.fah_client.get_project_file_to_bytes(
+                        p, 'alchemiscale-project.txt').decode('utf-8'))
+                for p in self.fah_project_ids]
 
         self.fah_client = FahAdaptiveSamplingClient(
             as_url=self.settings.fah_as_url,
@@ -232,7 +237,8 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # TODO: only want to claim tasks that correspond to FAH protocols
         # claim tasks from the compute API
         self.logger.info("Claiming tasks")
-        task_sks: List[ScopedKey] = self.client.claim_tasks(self.claim_limit)
+        task_sks: List[ScopedKey] = self.client.claim_tasks_with_protocols(self.claim_limit,
+                                                                           self.settings.protocols)
 
         # if no tasks claimed, sleep and return
         if all([task_sk is None for task_sk in task_sks]):
@@ -324,6 +330,10 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         # open index
         self.index = FahComputeServiceIndex(self.index_file, self.obj_store)
+
+        # update index with PROJECT information
+        for p in self.fah_projects:
+            self.index.set_project(p.project_id, p)
 
         # TODO: add running count of successes/failures, log to output
         try:

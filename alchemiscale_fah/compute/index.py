@@ -21,7 +21,7 @@ from .models import FahProject, FahRun, FahClone
 class FahComputeServiceIndex:
     """Persistent index interface for FahComputeServices"""
 
-    def __init__(self, index_file: os.PathLike, obj_store: os.PathLike):
+    def __init__(self, index_file: os.PathLike, obj_store: Optional[os.PathLike] = None):
         self.db = plyvel.DB(index_file, create_if_missing=True)
 
         #self.projects = self.db.prefixed_db(b"projects/")
@@ -147,7 +147,10 @@ class FahComputeServiceIndex:
             wb.put(key, value)
 
             key = f"runs/{project_id}-{run_id}".encode('utf-8')
-            value = FahRun(transformation_key=str(transformation)).json().encode('utf-8')
+            value = FahRun(
+                    project_id=project_id,
+                    run_id=run_id,
+                    transformation_key=str(transformation)).json().encode('utf-8')
 
             wb.put(key, value)
 
@@ -178,7 +181,11 @@ class FahComputeServiceIndex:
             wb.put(key, value)
 
             key = f"clones/{project_id}-{run_id}-{clone_id}".encode('utf-8')
-            value = FahClone(task_sk=task).json().encode('utf-8')
+            value = FahClone(
+                    project_id=project_id,
+                    run_id=run_id,
+                    clone_id=clone_id,
+                    task_sk=task).json().encode('utf-8')
 
             wb.put(key, value)
 

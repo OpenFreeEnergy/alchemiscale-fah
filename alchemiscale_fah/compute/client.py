@@ -153,7 +153,7 @@ class FahAdaptiveSamplingClient:
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-    def _download_bytes(self, api_url, endpoint, filename):
+    def _download_bytes(self, api_url, endpoint):
         url = urljoin(api_url, endpoint)
         r = requests.get(url, cert=self.cert, verify=self.verify, stream=True)
         self._check_status(r)
@@ -260,6 +260,14 @@ class FahAdaptiveSamplingClient:
             src,
         )
 
+    def create_project_file_from_bytes(self, project_id, bytedata: bytes, dest: Path):
+        self._upload_bytes(
+            self.ws_url,
+            f"/api/projects/{project_id}/files/{dest}",
+            bytedata,
+        )
+
+
     def delete_project_file(self, project_id, path):
         """Delete a file from the PROJECT directory tree.
 
@@ -291,6 +299,11 @@ class FahAdaptiveSamplingClient:
         """
         self._download(
                 self.ws_url, f"/api/projects/{project_id}/files/{src}", dest
+            )
+
+    def get_project_file_to_bytes(self, project_id, src):
+        return self._download_bytes(
+                self.ws_url, f"/api/projects/{project_id}/files/{src}"
             )
 
     def get_project_jobs(self, project_id, since: datetime = None) -> JobResults:
