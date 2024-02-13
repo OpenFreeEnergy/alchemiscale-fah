@@ -41,8 +41,9 @@ class FahSimulationUnit(ProtocolUnit):
 
 
 class FahOpenMMSimulationUnit(FahSimulationUnit):
-
-    def select_project(self, n_atoms: int, fah_projects: List[FahProject], settings: Settings):
+    def select_project(
+        self, n_atoms: int, fah_projects: List[FahProject], settings: Settings
+    ):
         """Select the PROJECT with the nearest effort to the given Transformation.
 
         "Effort" is a function of the number of atoms in the system and the
@@ -53,19 +54,20 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         nonbonded_settings = settings.system_settings.nonbonded_method
 
         # get only PROJECTs with matching nonbonded settings
-        eligible_projects = [fah_project for fah_project in fah_projects
-                             if fah_project.nonbonded_settings == nonbonded_settings]
+        eligible_projects = [
+            fah_project
+            for fah_project in fah_projects
+            if fah_project.nonbonded_settings == nonbonded_settings
+        ]
 
         # get efforts for each project, select project with closest effort to
         # this Transformation
         ...
 
-
     def generate_core_file(self, settings: Settings):
         """Generate a core file from the Protocol's settings."""
         ...
-        #TODO for options set to `None`, don't include in core file
-
+        # TODO for options set to `None`, don't include in core file
 
     async def _execute(self, ctx: FahContext, *, setup, settings, **inputs):
         # take serialized system, state, integrator from SetupUnit
@@ -83,7 +85,6 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         # choose a PROJECT for this Transformation and create a RUN for it;
         # also need to create a CLONE for this Task
         if project_id is None and run_id is None:
-
             # select PROJECT to use for execution
             project_id = self.select_project(ctx.fah_projects, settings)
 
@@ -92,14 +93,13 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
             # create RUN for this Transformation
             ctx.fah_client.create_run_file_from_bytes(
-                    project_id, run_id,
-                    str(ctx.transformation_sk.gufe_key).encode('utf-8'),
-                    'alchemiscale-transformation.txt'
+                project_id,
+                run_id,
+                str(ctx.transformation_sk.gufe_key).encode("utf-8"),
+                "alchemiscale-transformation.txt",
             )
             ctx.index.set_transformation(
-                    ctx.transformation_sk.gufe_key,
-                    project_id,
-                    run_id
+                ctx.transformation_sk.gufe_key, project_id, run_id
             )
 
         # if we got PROJECT and RUN IDs, but no CLONE ID, it means this Task
@@ -107,7 +107,6 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         # Transformation has; we use the existing PROJECT and RUN but create a
         # new CLONE
         if clone_id is None:
-
             # create core file from settings
             core_file = self.generate_core_file(settings)
 
@@ -116,20 +115,17 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
             # create CLONE for this Task
             ctx.fah_client.create_clone_file_from_bytes(
-                    project_id, run_id, clone_id,
-                    str(ctx.task_sk).encode('utf-8'),
-                    'alchemiscale-task.txt'
+                project_id,
+                run_id,
+                clone_id,
+                str(ctx.task_sk).encode("utf-8"),
+                "alchemiscale-task.txt",
             )
             for filepath in (core_file, system_file, state_file, integrator_file):
                 ctx.fah_client.create_clone_file(
-                        project_id, run_id, clone_id, 
-                        filepath, filepath.name)
-            ctx.index.set_task(
-                    ctx.task_sk,
-                    project_id,
-                    run_id,
-                    clone_id
-            )
+                    project_id, run_id, clone_id, filepath, filepath.name
+                )
+            ctx.index.set_task(ctx.task_sk, project_id, run_id, clone_id)
             ctx.fah_client.create_clone(project_id, run_id, clone_id)
 
         while True:

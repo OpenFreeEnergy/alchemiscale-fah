@@ -65,10 +65,13 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         # get PROJECT data from metadata files in each PROJECT
         self.fah_projects = [
-                FahProject.parse_raw(
-                    self.fah_client.get_project_file_to_bytes(
-                        p, 'alchemiscale-project.txt').decode('utf-8'))
-                for p in self.fah_project_ids]
+            FahProject.parse_raw(
+                self.fah_client.get_project_file_to_bytes(
+                    p, "alchemiscale-project.txt"
+                ).decode("utf-8")
+            )
+            for p in self.fah_project_ids
+        ]
 
         self.fah_client = FahAdaptiveSamplingClient(
             as_url=self.settings.fah_as_url,
@@ -119,7 +122,6 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self.logger = logging.LoggerAdapter(logger, extra)
 
         self.heartbeat_thread = None
-
 
     @classmethod
     def update_index(settings: FAHSynchronousComputeServiceSettings):
@@ -200,7 +202,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 project_run_clone=(project_id, run_id, clone_id),
                 transformation_sk=tf_sk,
                 task_sk=task,
-                index=self.index
+                index=self.index,
             )
         finally:
             if not self.keep_shared:
@@ -237,8 +239,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # TODO: only want to claim tasks that correspond to FAH protocols
         # claim tasks from the compute API
         self.logger.info("Claiming tasks")
-        task_sks: List[ScopedKey] = self.client.claim_tasks_with_protocols(self.claim_limit,
-                                                                           self.settings.protocols)
+        task_sks: List[ScopedKey] = self.client.claim_tasks_with_protocols(
+            self.claim_limit, self.settings.protocols
+        )
 
         # if no tasks claimed, sleep and return
         if all([task_sk is None for task_sk in task_sks]):
@@ -356,7 +359,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             self._stop = True
             # remove ComputeServiceRegistration, drop all claims
             self._deregister()
-            
+
             # close index
             self.index.db.close()
 
@@ -386,7 +389,7 @@ async def execute_DAG(
     project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]],
     transformation_sk: ScopedKey,
     task_sk: ScopedKey,
-    index: FahComputeServiceIndex
+    index: FahComputeServiceIndex,
 ) -> ProtocolDAGResult:
     """
     Locally execute a full :class:`ProtocolDAG` in serial and in-process.
@@ -460,14 +463,16 @@ async def execute_DAG(
             scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
             scratch.mkdir()
 
-            context = FahContext(shared=shared,
-                                 scratch=scratch,
-                                 fah_client=fah_client,
-                                 fah_projects=fah_projects,
-                                 project_run_clone=project_run_clone,
-                                 transformation_sk=transformation_sk,
-                                 task_sk=task_sk,
-                                 index=index)
+            context = FahContext(
+                shared=shared,
+                scratch=scratch,
+                fah_client=fah_client,
+                fah_projects=fah_projects,
+                project_run_clone=project_run_clone,
+                transformation_sk=transformation_sk,
+                task_sk=task_sk,
+                index=index,
+            )
 
             params = dict(context=context, raise_error=raise_error, **inputs)
 

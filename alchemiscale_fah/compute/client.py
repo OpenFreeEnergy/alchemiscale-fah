@@ -206,7 +206,10 @@ class FahAdaptiveSamplingClient:
         )
 
     def list_projects(self) -> dict[str, ProjectData]:
-        return {key: ProjectData(**value) for key, value in self._get(self.ws_url, f"/api/projects").items()}
+        return {
+            key: ProjectData(**value)
+            for key, value in self._get(self.ws_url, f"/api/projects").items()
+        }
 
     def create_project(self, project_id, project_data: ProjectData):
         self._put(self.ws_url, f"/api/projects/{project_id}", project_data.dict())
@@ -267,7 +270,6 @@ class FahAdaptiveSamplingClient:
             bytedata,
         )
 
-
     def delete_project_file(self, project_id, path):
         """Delete a file from the PROJECT directory tree.
 
@@ -280,9 +282,9 @@ class FahAdaptiveSamplingClient:
 
         """
         self._delete(
-                self.ws_url,
-                f"/api/projects/{project_id}/files/{path}",
-            )
+            self.ws_url,
+            f"/api/projects/{project_id}/files/{path}",
+        )
 
     def get_project_file(self, project_id, src, dest):
         """Download a file from the PROJECT directory tree.
@@ -297,14 +299,12 @@ class FahAdaptiveSamplingClient:
             Path to download file to.
 
         """
-        self._download(
-                self.ws_url, f"/api/projects/{project_id}/files/{src}", dest
-            )
+        self._download(self.ws_url, f"/api/projects/{project_id}/files/{src}", dest)
 
     def get_project_file_to_bytes(self, project_id, src):
         return self._download_bytes(
-                self.ws_url, f"/api/projects/{project_id}/files/{src}"
-            )
+            self.ws_url, f"/api/projects/{project_id}/files/{src}"
+        )
 
     def get_project_jobs(self, project_id, since: datetime = None) -> JobResults:
         """Get all active jobs for the project.
@@ -325,9 +325,7 @@ class FahAdaptiveSamplingClient:
             since = since.isoformat()
 
         return JobResults(
-            **self._get(
-                self.ws_url, f"/api/projects/{project_id}/jobs", since=since
-            )
+            **self._get(self.ws_url, f"/api/projects/{project_id}/jobs", since=since)
         )
 
     def create_run_file(self, project_id, run_id, src: Path, dest: Path):
@@ -337,7 +335,9 @@ class FahAdaptiveSamplingClient:
             src,
         )
 
-    def create_run_file_from_bytes(self, project_id, run_id, bytedata: bytes, dest: Path):
+    def create_run_file_from_bytes(
+        self, project_id, run_id, bytedata: bytes, dest: Path
+    ):
         self._upload_bytes(
             self.ws_url,
             f"/api/projects/{project_id}/files/RUN{run_id}/{dest}",
@@ -416,14 +416,18 @@ class FahAdaptiveSamplingClient:
             src,
         )
 
-    def create_clone_file_from_bytes(self, project_id, run_id, clone_id, bytedata: bytes, dest: Path):
+    def create_clone_file_from_bytes(
+        self, project_id, run_id, clone_id, bytedata: bytes, dest: Path
+    ):
         self._upload_bytes(
             self.ws_url,
             f"/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{dest}",
             bytedata,
         )
 
-    def create_clone_result_file(self, project_id, run_id, clone_id, src: Path, dest: Path):
+    def create_clone_result_file(
+        self, project_id, run_id, clone_id, src: Path, dest: Path
+    ):
         self._upload(
             self.ws_url,
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{dest}",

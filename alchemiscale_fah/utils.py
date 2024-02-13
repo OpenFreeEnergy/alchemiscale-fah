@@ -1,4 +1,3 @@
-
 from typing import Callable
 from enum import Enum
 
@@ -16,16 +15,18 @@ def effort_nlogn(n):
 
 
 def effort_n2(n):
-    return n ** 2
+    return n**2
 
 
 NONBONDED_EFFORT = {
-        NonbondedSettings.PME: effort_nlogn,
-        NonbondedSettings.NoCutoff: effort_n2,
-        }
+    NonbondedSettings.PME: effort_nlogn,
+    NonbondedSettings.NoCutoff: effort_n2,
+}
 
 
-def get_atom_count(target_effort: float, effort_func: Callable, lower: int, upper: int) -> int:
+def get_atom_count(
+    target_effort: float, effort_func: Callable, lower: int, upper: int
+) -> int:
     """Given a target effort and effort function, get the atom count associated
     with it.
 
@@ -54,17 +55,20 @@ def get_atom_count(target_effort: float, effort_func: Callable, lower: int, uppe
         `upper`.
 
     """
+
     def f(n):
         return np.abs(effort_func(n) - target_effort)
-    return round(minimize_scalar(f, bounds=(lower, upper), method='bounded').x)
+
+    return round(minimize_scalar(f, bounds=(lower, upper), method="bounded").x)
 
 
-def generate_project_atom_counts(lower: int, upper: int, n_projects: int,
-                                 nonbonded_settings: NonbondedSettings) -> list[int]:
+def generate_project_atom_counts(
+    lower: int, upper: int, n_projects: int, nonbonded_settings: NonbondedSettings
+) -> list[int]:
     """Generate a list of atom counts, evenly spaced in computational effort.
 
     This function is useful for seeding a range of Folding@Home PROJECTs with
-    a range of atom counts that can be used effectivley with 
+    a range of atom counts that can be used effectivley with
 
     Parameters
     ----------
@@ -92,7 +96,7 @@ def generate_project_atom_counts(lower: int, upper: int, n_projects: int,
 
     effort_func = NONBONDED_EFFORT[nonbonded_settings]
 
-    #match nonbonded_settings:
+    # match nonbonded_settings:
     #    case NonbondedSettings.PME | 'PME':
     #        effort_func = effort_nlogn
     #    case NonbondedSettings.NoCutoff | 'NoCutoff':
@@ -100,12 +104,13 @@ def generate_project_atom_counts(lower: int, upper: int, n_projects: int,
     #    case _:
     #        raise ValueError("Invalid NonbondedSettings given")
 
-
     project_efforts = np.linspace(effort_func(lower), effort_func(upper), n_projects)
 
     project_atom_counts = []
     for project_effort in project_efforts:
-        project_atom_counts.append(get_atom_count(project_effort, effort_func, lower, upper))
+        project_atom_counts.append(
+            get_atom_count(project_effort, effort_func, lower, upper)
+        )
 
     return project_atom_counts
 

@@ -10,6 +10,7 @@ from alchemiscale.models import ScopedKey
 
 # FahAdaptiveSamplingClient models
 
+
 class CompressionTypeEnum(Enum):
     NONE = "NONE"
     BZIP2 = "BZIP2"
@@ -36,7 +37,9 @@ class FahAdaptiveSamplingModel(BaseModel):
 
 class ProjectData(FahAdaptiveSamplingModel):
     core_id: str = Field(..., description="The core ID.  E.g. 0xa8.")
-    contact: str = Field(..., description="Email of the person responsible for the project.")
+    contact: str = Field(
+        ..., description="Email of the person responsible for the project."
+    )
     runs: int = Field(0, description="The number of runs.")
     clones: int = Field(0, description="The number of clones.")
     gens: int = Field(1, description="Maximum number of generations per job.")
@@ -48,8 +51,9 @@ class ProjectData(FahAdaptiveSamplingModel):
     deadline: float = Field(
         172800.0, description="Days in which the WU can be returned for credit."
     )
-    compression: CompressionTypeEnum = Field(CompressionTypeEnum.ZLIB,
-                                             description="Enable WU compression.")
+    compression: CompressionTypeEnum = Field(
+        CompressionTypeEnum.ZLIB, description="Enable WU compression."
+    )
 
     # TODO: add validator to preconvert emails from strings
     # TODO: add validator to preconvert core_id from string
@@ -64,9 +68,15 @@ class JobData(FahAdaptiveSamplingModel):
     clone: int = Field(..., description="The job clone.")
     gen: int = Field(..., description="The latest job generation.")
     state: JobStateEnum = Field(..., description="The current job state.")
-    last: Optional[datetime] = Field(None, description="Last time the job state changed.")
-    retries: Optional[int] = Field(None, description="Number of times the job has been retried.")
-    assigns: Optional[int] = Field(None, description="Number of times the job has been assigned.")
+    last: Optional[datetime] = Field(
+        None, description="Last time the job state changed."
+    )
+    retries: Optional[int] = Field(
+        None, description="Number of times the job has been retried."
+    )
+    assigns: Optional[int] = Field(
+        None, description="Number of times the job has been assigned."
+    )
     progress: Optional[int] = Field(None, description="Job progress.")
 
 
@@ -103,16 +113,19 @@ class ASProjectData(FahAdaptiveSamplingModel):
 
 # FahAsynchronousComputeService models
 
+
 # TODO: documentation and enum for nonbonded_settings
 class FahProject(BaseModel):
     project_id: str
     n_atoms: int
     nonbonded_settings: str
 
+
 class FahRun(BaseModel):
     project_id: str
     run_id: str
     transformation_key: str
+
 
 class FahClone(BaseModel):
     project_id: str
