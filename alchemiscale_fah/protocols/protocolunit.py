@@ -132,9 +132,9 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
             # check for and await sleep results from work server
             jobdata = ctx.fah_client.get_clone(project_id, run_id, clone_id)
 
-            if jobdata.state == JobStateEnum.finished:
+            if jobdata.state == JobStateEnum.FINISHED:
                 break
-            elif jobdata.state == JobStateEnum.failed:
+            elif jobdata.state == JobStateEnum.FAILED:
                 raise FahExecutionException(
                     "Consecutive failed or faulty WUs exceeded the "
                     f"maximum for RUN {run_id} in PROJECT {project_id}"

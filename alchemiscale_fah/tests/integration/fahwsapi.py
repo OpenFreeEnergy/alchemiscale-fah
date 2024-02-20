@@ -3,3 +3,102 @@
 ===========================================================================================
 
 """
+
+import os
+from pathlib import Path
+
+import plyvel
+from fastapi import FastAPI, APIRouter, Body, Depends, HTTPException, status
+
+
+class WSStateDB:
+
+    def __init__(self, state_file: os.PathLike):
+        self.db = plyvel.DB(state_file, create_if_missing=True)
+
+    def create_clone(self, project_id, run_id, clone_id):
+        with self.db.write_batch(transaction=True) as wb:
+            key = f"clones/{project_id}-{run_id}-{clone_id}".encode("utf-8")
+            value = "READY"
+
+            wb.put(key, value)
+
+    def get_clone(self, project_id, run_id, clone_id):
+        key = f"clones/{project_id}-{run_id}-{clone_id}".encode("utf-8")
+        value = self.db.get(key).decode("utf-8")
+
+    def finish_clone(self, project_id, run_id, clone_id):
+        with self.db.write_batch(transaction=True) as wb:
+            key = f"clones/{project_id}-{run_id}-{clone_id}".encode("utf-8")
+            value = "FINISHED"
+
+            wb.put(key, value)
+
+
+def get_inputs_dir() -> Path:
+    ...
+
+
+def get_results_dir() -> Path:
+    ...
+
+
+def get_wsstatedb() -> WSStateDB:
+    ...
+
+
+app = FastAPI(title="AlchemiscaleComputeAPI")
+
+
+@app.put("/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/create")
+def create_clone(
+        project_id,
+        run_id,
+        clone_id,
+        statedb: WSStateDB = Depends(get_wsstatedb),
+        ):
+    # create clone instance in database
+    statedb.create_clone(project_id, run_id, clone_id)
+
+
+@app.get("/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}")
+def get_clone(
+        project_id,
+        run_id,
+        clone_id,
+        statedb: WSStateDB = Depends(get_wsstatedb),
+        ):
+    # return clone state information
+    return statedb.get_clone(project_id, run_id, clone_id)
+
+
+@app.put("/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{dest}")
+def create_clone_file(
+        project_id,
+        run_id,
+        clone_id,
+        dest,
+        inputs_dir: Path = Depends(get_inputs_dir),
+        ):
+    # create clone files in inputs dir
+    ...
+
+
+# NOTE: this is not a real API endpoint on a work server, but is used by tests
+# to simulate work completing
+@app.put("/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/_finish")
+def _finish_clone(
+        project_id,
+        run_id,
+        clone_id,
+        results_dir: Path = Depends(get_results_dir),
+        statedb: WSStateDB = Depends(get_wsstatedb),
+        ):
+    # create results directory
+    ...
+
+    # create simulated result files
+    ...
+
+    # set finished state
+    statedb.finish_clone(project_id, run_id, clone_id)
