@@ -144,5 +144,6 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                 await asyncio.sleep(ctx.fah_poll_sleep)
 
         # read in results from `globals.csv`
+        globals_csv = ctx.fah_client.get_clone_output_file_to_bytes()
 
         # return results for consumption by ResultUnit

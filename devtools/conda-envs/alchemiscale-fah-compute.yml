@@ -9,6 +9,8 @@ dependencies:
 
   # alchemiscale-fah dependencies
   - cryptography
+  - plyvel
+  - zstandard
 
   - pip:
-    - git+https://github.com/choderalab/feflow.git@neqcyc-setup-unit
+    - git+https://github.com/choderalab/feflow.git

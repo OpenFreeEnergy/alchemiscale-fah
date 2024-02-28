@@ -38,10 +38,26 @@ class FahAdaptiveSamplingClient:
         self,
         as_url: Optional[str] = None,
         ws_url: Optional[str] = None,
-        certificate_file: os.PathLike = "api-certificate.pem",
-        key_file: os.PathLike = "api-private.pem",
+        certificate_file: Optional[os.PathLike] = None,
+        key_file: Optional[os.PathLike] = None,
         verify: bool = True,
     ):
+        """Create a new FahAdaptiveSamplingClient instance.
+
+        Parameters
+        ----------
+        as_url
+            URL of the assignment server to communicate with, if needed.
+        ws_url
+            URL of the work server to communicate with, if needed.
+        certificate_file
+            Path to the certificate file to use for authentication, in PEM
+            format. Only needed for use with real FAH servers, not testing.
+        key_file 
+            Path to the key file to use for encrypted communication, in PEM
+            format. Only needed for use with real FAH servers, not testing.
+
+        """
         as_url = urlparse(as_url)
         ws_url = urlparse(ws_url)
 
@@ -49,7 +65,7 @@ class FahAdaptiveSamplingClient:
         self.ws_url = ws_url.geturl()
         self.ws_ip_addr = socket.gethostbyname(ws_url.hostname)
 
-        self.certificate = self.read_certificate(certificate_file)
+        self.certificate = self.read_certificate(certificate_file) if certificate_file else None
 
         if key_file is None:
             self.key = self.create_key()
@@ -425,13 +441,21 @@ class FahAdaptiveSamplingClient:
             bytedata,
         )
 
-    def create_clone_result_file(
+    def create_clone_output_file(
         self, project_id, run_id, clone_id, src: Path, dest: Path
     ):
         self._upload(
             self.ws_url,
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{dest}",
             src,
+        )
+
+    def get_clone_output_file_to_bytes(
+        self, project_id, run_id, clone_id, src: Path
+    ):
+        return self._download_bytes(
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{src}",
         )
 
     def list_gen_files(self, project_id, run_id, clone_id, gen_id) -> list[FileData]:
@@ -442,3 +466,6 @@ class FahAdaptiveSamplingClient:
                 f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/gens/{gen_id}/files",
             )
         ]
+
+    def _reset_mock_ws(self):
+        self._put(self.ws_url, "/reset")

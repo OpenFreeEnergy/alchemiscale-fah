@@ -36,7 +36,7 @@ class FahAdaptiveSamplingModel(BaseModel):
 
 
 class ProjectData(FahAdaptiveSamplingModel):
-    core_id: str = Field(..., description="The core ID.  E.g. 0xa8.")
+    core_id: int = Field(..., description="The core ID.  E.g. 0xa8.")
     contact: str = Field(
         ..., description="Email of the person responsible for the project."
     )
@@ -62,7 +62,7 @@ class ProjectData(FahAdaptiveSamplingModel):
 
 class JobData(FahAdaptiveSamplingModel):
     server: int = Field(..., description="ID for work server that executed this job.")
-    core: int = Field(..., description="ID for core that executed this job.")
+    core: Optional[int] = Field(None, description="ID for core that executed this job.")
     project: int = Field(..., description="The project ID.")
     run: int = Field(..., description="The job run.")
     clone: int = Field(..., description="The job clone.")
