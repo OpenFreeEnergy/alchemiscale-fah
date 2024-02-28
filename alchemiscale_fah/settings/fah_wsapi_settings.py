@@ -31,6 +31,7 @@ class WSAPISettings(FrozenSettings):
     WSAPI_PORT: int = 80
     WSAPI_LOGLEVEL: str = "info"
 
+
 @lru_cache()
 def get_wsapi_settings():
     return WSAPISettings()

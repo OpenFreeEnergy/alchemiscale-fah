@@ -18,8 +18,7 @@ from ..compute.models import JobStateEnum, FahProject, FahRun, FahClone
 from ..compute.index import FahComputeServiceIndex
 
 
-class FahExecutionException(RuntimeError):
-    ...
+class FahExecutionException(RuntimeError): ...
 
 
 @dataclass

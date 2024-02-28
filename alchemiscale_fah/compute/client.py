@@ -53,7 +53,7 @@ class FahAdaptiveSamplingClient:
         certificate_file
             Path to the certificate file to use for authentication, in PEM
             format. Only needed for use with real FAH servers, not testing.
-        key_file 
+        key_file
             Path to the key file to use for encrypted communication, in PEM
             format. Only needed for use with real FAH servers, not testing.
 
@@ -65,7 +65,9 @@ class FahAdaptiveSamplingClient:
         self.ws_url = ws_url.geturl()
         self.ws_ip_addr = socket.gethostbyname(ws_url.hostname)
 
-        self.certificate = self.read_certificate(certificate_file) if certificate_file else None
+        self.certificate = (
+            self.read_certificate(certificate_file) if certificate_file else None
+        )
 
         if key_file is None:
             self.key = self.create_key()
@@ -450,9 +452,7 @@ class FahAdaptiveSamplingClient:
             src,
         )
 
-    def get_clone_output_file_to_bytes(
-        self, project_id, run_id, clone_id, src: Path
-    ):
+    def get_clone_output_file_to_bytes(self, project_id, run_id, clone_id, src: Path):
         return self._download_bytes(
             self.ws_url,
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{src}",

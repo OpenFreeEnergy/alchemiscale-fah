@@ -8,8 +8,7 @@ import click
 
 
 @click.group()
-def cli():
-    ...
+def cli(): ...
 
 
 @cli.command(
@@ -173,21 +172,18 @@ def create_project(
 
 
 @cli.group(help="Subcommands for compute services")
-def compute():
-    ...
+def compute(): ...
 
 
 @compute.command(
     name="fah-asynchronous",
     help="Start up a FahAsynchronousComputeService",
 )
-def fah_asynchronous():
-    ...
+def fah_asynchronous(): ...
 
 
 @compute.command(
     name="initialize-state",
     help="Initialize statefile for FahAsynchronousComputeService",
 )
-def initialize_state():
-    ...
+def initialize_state(): ...
