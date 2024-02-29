@@ -8,9 +8,11 @@ import os
 import shutil
 from pathlib import Path
 from importlib import resources
+from typing import Annotated
 
 import plyvel
-from fastapi import FastAPI, APIRouter, Body, Depends, HTTPException, status
+from starlette.responses import Response
+from fastapi import FastAPI, APIRouter, Body, Depends, HTTPException, status, Request
 
 from ..settings.fah_wsapi_settings import WSAPISettings, get_wsapi_settings
 from .models import JobData, ProjectData
@@ -161,20 +163,36 @@ def create_project(
 
 
 @app.put("/api/projects/{project_id}/files/{dest}")
-def create_project_file(
+async def create_project_file(
     project_id,
     dest,
-    file_data: bytes = Body(),
+    file_data: Request,
     inputs_dir: Path = Depends(get_inputs_dir_depends),
 ):
+    data = await file_data.body()
     project_inputs = inputs_dir / f"p{project_id}"
-    dest_path = project_inputs.join(dest)
+    dest_path = project_inputs.joinpath(dest)
 
     # make parent directories if they don't exist
     dest_path.parent.mkdir(parents=True)
 
     with open(dest_path, "wb") as f:
-        f.write(file_data)
+        f.write(data)
+
+
+@app.get("/api/projects/{project_id}/files/{src}")
+def get_project_file(
+    project_id,
+    src,
+    inputs_dir: Path = Depends(get_inputs_dir_depends),
+) -> bytes:
+    project_inputs = inputs_dir / f"p{project_id}"
+    src_path = project_inputs.joinpath(src)
+
+    with open(src_path, "rb") as f:
+        file_data = f.read()
+
+    return Response(file_data)
 
 
 @app.get("/api/projects/{project_id}")
@@ -243,12 +261,14 @@ def _finish_clone(
     clone_outputs = outputs_dir / f"PROJ{project_id}/RUN{run_id}/CLONE{clone_id}"
     gen_outputs = clone_outputs / "results0"
 
+    gen_outputs.mkdir(parents=True)
+
     # create simulated output files
     globals_csv_output_path = gen_outputs / "globals.csv"
-    globals_csv_path = resources.as_file(
+    with resources.as_file(
         resources.files("alchemiscale_fah.tests.data").joinpath("globals.csv")
-    )
-    shutil.copy(globals_csv_path, globals_csv_output_path)
+        ) as globals_csv_path:
+        shutil.copy(globals_csv_path, globals_csv_output_path)
 
     # set finished state
     statedb.finish_clone(project_id, run_id, clone_id)

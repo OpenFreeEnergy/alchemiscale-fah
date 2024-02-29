@@ -42,7 +42,8 @@ def work_server_api(tmpdir_factory):
         # api.app.dependency_overrides[api.get_wsstatedb_depends] = get_inputs_dir_override
         # api.app.dependency_overrides[api.get_inputs_dir_depends] = get_inputs_dir_override
         # api.app.dependency_overrides[api.get_outputs_dir_depends] = get_outputs_dir_override
-        yield api.app
+        yield api.app, get_wsapi_settings_override()
+
         api.app.dependency_overrides = overrides
 
 
@@ -59,11 +60,11 @@ def run_server(fastapi_app, settings):
 
 @pytest.fixture(scope="module")
 def uvicorn_server(work_server_api):
-    settings = get_wsapi_settings_override()
+    ws_api, settings = work_server_api
     with running_service(
         run_server,
         port=settings.WSAPI_PORT,
-        args=(work_server_api, settings),
+        args=(ws_api, settings),
     ):
         yield
 
