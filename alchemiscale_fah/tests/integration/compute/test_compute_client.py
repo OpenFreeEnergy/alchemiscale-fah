@@ -34,17 +34,18 @@ class TestFahAdaptiveSamplingClient:
         project_id = 90001
 
         fah_project = FahProject(
-            project_id=project_id, n_atoms=10000, nonbonded_settings='NoCutoff'
+            project_id=project_id, n_atoms=10000, nonbonded_settings="NoCutoff"
         )
 
         project_file = "alchemiscale-project.txt"
 
         client.create_project_file_from_bytes(
-        project_id, fah_project.json().encode("utf-8"), project_file
+            project_id, fah_project.json().encode("utf-8"), project_file
         )
 
         fah_project_ = FahProject.parse_raw(
-                client.get_project_file_to_bytes(project_id, project_file).decode('utf-8'))
+            client.get_project_file_to_bytes(project_id, project_file).decode("utf-8")
+        )
 
         assert fah_project_ == fah_project
 
@@ -75,7 +76,7 @@ class TestFahAdaptiveSamplingClient:
         assert jobdata.state == "READY"
         assert jobdata.core == 0x23
 
-    def test_get_clone(self, fah_adaptive_sampling_client): 
+    def test_get_clone(self, fah_adaptive_sampling_client):
         client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
         project_id = 90001
         run_id = 0

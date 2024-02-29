@@ -267,7 +267,7 @@ def _finish_clone(
     globals_csv_output_path = gen_outputs / "globals.csv"
     with resources.as_file(
         resources.files("alchemiscale_fah.tests.data").joinpath("globals.csv")
-        ) as globals_csv_path:
+    ) as globals_csv_path:
         shutil.copy(globals_csv_path, globals_csv_output_path)
 
     # set finished state

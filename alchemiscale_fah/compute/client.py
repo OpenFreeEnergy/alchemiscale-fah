@@ -473,4 +473,7 @@ class FahAdaptiveSamplingClient:
 
     def _finish_clone_mock_ws(self, project_id, run_id, clone_id):
         """Only used for testing via mock ws"""
-        self._put(self.ws_url, f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/_finish")
+        self._put(
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/_finish",
+        )
