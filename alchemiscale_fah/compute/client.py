@@ -461,16 +461,16 @@ class FahAdaptiveSamplingClient:
 
         """
         self._download(
-                self.ws_url,
-                f"/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{src}",
-                dest)
+            self.ws_url,
+            f"/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{src}",
+            dest,
+        )
 
     def get_clone_file_to_bytes(self, project_id, run_id, clone_id, src):
         return self._download_bytes(
-            self.ws_url, 
+            self.ws_url,
             f"/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{src}",
         )
-
 
     def create_clone_output_file(
         self, project_id, run_id, clone_id, src: Path, dest: Path

@@ -229,21 +229,21 @@ def get_clone(
 # already serviced by create_project_file
 @app.put("/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{dest}")
 async def create_clone_file(
-       project_id,
-       run_id,
-       clone_id,
-       dest,
-       file_data: Request,
-       inputs_dir: Path = Depends(get_inputs_dir_depends),
-       ):
+    project_id,
+    run_id,
+    clone_id,
+    dest,
+    file_data: Request,
+    inputs_dir: Path = Depends(get_inputs_dir_depends),
+):
     data = await file_data.body()
-    clone_inputs = (inputs_dir / f"p{project_id}/RUN{run_id}/CLONE{clone_id}")
+    clone_inputs = inputs_dir / f"p{project_id}/RUN{run_id}/CLONE{clone_id}"
     dest_path = clone_inputs.joinpath(dest)
- 
+
     # make parent directories if they don't exist
     dest_path.parent.mkdir(parents=True)
- 
-    with open(dest_path, 'wb') as f:
+
+    with open(dest_path, "wb") as f:
         f.write(data)
 
 
@@ -255,13 +255,14 @@ def get_clone_file(
     src,
     inputs_dir: Path = Depends(get_inputs_dir_depends),
 ) -> bytes:
-    clone_inputs = (inputs_dir / f"p{project_id}/RUN{run_id}/CLONE{clone_id}")
+    clone_inputs = inputs_dir / f"p{project_id}/RUN{run_id}/CLONE{clone_id}"
     src_path = clone_inputs.joinpath(src)
 
     with open(src_path, "rb") as f:
         file_data = f.read()
 
     return Response(file_data)
+
 
 @app.get("/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{src}")
 def get_clone_output_file(
