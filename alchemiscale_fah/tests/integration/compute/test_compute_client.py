@@ -2,6 +2,9 @@
 
 """
 
+from pathlib import Path
+from importlib import resources
+
 import pytest
 
 from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
@@ -78,6 +81,7 @@ class TestFahAdaptiveSamplingClient:
 
     def test_get_clone(self, fah_adaptive_sampling_client):
         client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+
         project_id = 90001
         run_id = 0
         clone_id = 0
@@ -109,8 +113,97 @@ class TestFahAdaptiveSamplingClient:
 
         assert jobdata.state == "FINISHED"
 
-    def test_create_clone_file(self): ...
+    def test_create_clone_file(self, fah_adaptive_sampling_client): 
+        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
 
-    def test_create_clone_file_from_bytes(self): ...
+        project_id = 90001
+        run_id = 0
+        clone_id = 0
+        
+        project_data = ProjectData(
+            core_id=0x23,
+            contact="lol@no.int",
+            atoms=10000,
+            credit=5000,
+        )
 
-    def test_get_clone_output_file_to_bytes(self): ...
+        client.create_project(project_id, project_data)
+
+        # create test file
+        content = "brown cow how now"
+        src = Path('testfile.txt')
+        with open(src, 'w') as f:
+            f.write(content)
+
+        dest = 'testfile.out'
+
+        # try creating file before clone exists; should work
+        client.create_clone_file(project_id, run_id, clone_id, src, dest)
+
+        # try getting it back
+        content_ = client.get_clone_file_to_bytes(
+                project_id, run_id, clone_id, dest).decode('utf-8')
+
+        assert content_ == content
+
+    def test_create_clone_file_from_bytes(self, fah_adaptive_sampling_client):
+        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+
+        project_id = 90001
+        run_id = 0
+        clone_id = 0
+        
+        project_data = ProjectData(
+            core_id=0x23,
+            contact="lol@no.int",
+            atoms=10000,
+            credit=5000,
+        )
+
+        client.create_project(project_id, project_data)
+
+        # create test file
+        content = b"brown cow how now"
+        dest = 'testfile.out'
+
+        # try creating file before clone exists; should work
+        client.create_clone_file_from_bytes(project_id, run_id, clone_id, content, dest)
+
+        # try getting it back
+        content_ = client.get_clone_file_to_bytes(
+                project_id, run_id, clone_id, dest)
+
+        assert content_ == content
+
+    def test_get_clone_output_file_to_bytes(self, fah_adaptive_sampling_client):
+        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+
+        project_id = 90001
+        run_id = 0
+        clone_id = 0
+
+        project_data = ProjectData(
+            core_id=0x23,
+            contact="lol@no.int",
+            atoms=10000,
+            credit=5000,
+        )
+
+        client.create_project(project_id, project_data)
+
+        client.create_clone(project_id, run_id, clone_id)
+
+        # now, let the job "finish"
+        client._finish_clone_mock_ws(project_id, run_id, clone_id)
+
+        with resources.as_file(
+            resources.files("alchemiscale_fah.tests.data").joinpath("globals.csv")
+        ) as globals_csv_path:
+            with open(globals_csv_path, 'r') as f:
+                content = f.read()
+
+        # get output file
+        content_ = client.get_clone_output_file_to_bytes(
+                project_id, run_id, clone_id, 'globals.csv').decode('utf-8')
+
+        assert content_ == content
