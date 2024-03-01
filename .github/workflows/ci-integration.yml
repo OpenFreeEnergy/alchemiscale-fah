@@ -1,0 +1,65 @@
+name: "CI - Integration"
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  schedule:
+    # At 07:00 UTC on Monday and Thursday.
+    - cron: "0 7 * * 1,4"
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.OS }}-latest
+    name: "tests"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu']
+        python-version:
+          - "3.9"
+          - "3.10"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+            auto-update-conda: true
+            use-mamba: true
+            python-version: ${{ matrix.python-version }}
+            miniforge-variant: Mambaforge
+            environment-file: devtools/conda-envs/test.yml
+            activate-environment: alchemiscale-fah-test
+
+
+      - name: "Install"
+        run: python -m pip install --no-deps -e .
+
+      - name: "Environment Information"
+        run: |
+          mamba info -a
+          mamba list
+
+      - name: "Run tests"
+        run: |
+          pytest -v --cov=alchemiscale_fah --cov-report=xml alchemiscale_fah/tests
+
+      - name: codecov
+        if: ${{ github.repository == 'openforcefield/alchemiscale-fah'
+                && github.event != 'schedule' }}
+        uses: codecov/codecov-action@v2
+        with:
+          file: coverage.xml
+          fail_ci_if_error: False
+          verbose: True
