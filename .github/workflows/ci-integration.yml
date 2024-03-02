@@ -27,7 +27,6 @@ jobs:
       matrix:
         os: ['ubuntu']
         python-version:
-          - "3.9"
           - "3.10"
 
     steps:
