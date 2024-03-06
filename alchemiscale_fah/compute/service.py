@@ -391,6 +391,7 @@ async def execute_DAG(
     transformation_sk: ScopedKey,
     task_sk: ScopedKey,
     index: FahComputeServiceIndex,
+    encryption_public_key: Optional[str] = None,
 ) -> ProtocolDAGResult:
     """
     Locally execute a full :class:`ProtocolDAG` in serial and in-process.
@@ -431,6 +432,8 @@ async def execute_DAG(
     task_sk
 
     index
+
+    encryption_public_key
 
     Returns
     -------
@@ -473,6 +476,7 @@ async def execute_DAG(
                 transformation_sk=transformation_sk,
                 task_sk=task_sk,
                 index=index,
+                encryption_public_key=encryption_public_key
             )
 
             params = dict(context=context, raise_error=raise_error, **inputs)

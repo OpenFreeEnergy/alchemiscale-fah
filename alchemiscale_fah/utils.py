@@ -68,7 +68,7 @@ def generate_project_atom_counts(
     """Generate a list of atom counts, evenly spaced in computational effort.
 
     This function is useful for seeding a range of Folding@Home PROJECTs with
-    a range of atom counts that can be used effectivley with
+    a range of atom counts that can be used effectivley with alchemiscale-fah.
 
     Parameters
     ----------
