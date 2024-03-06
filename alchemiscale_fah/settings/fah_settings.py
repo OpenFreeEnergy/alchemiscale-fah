@@ -22,7 +22,8 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         description="Interval at which checkpoint is to be written (default: -5 [5%])",
     )
     viewerFreq: int = Field(
-        -1, description="Interval at which JSON viewer frame is to be written (default: -1 [1%])"
+        -1,
+        description="Interval at which JSON viewer frame is to be written (default: -1 [1%])",
     )
     globalVarFreq: int = Field(
         2500, description="Interval at which global variables are to be written"
@@ -46,7 +47,8 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         description="If specified, this is the maximum atom index returned in the XTC file (optional)",
     )
     xtcAtoms: Optional[Union[str, list[int]]] = Field(
-        None, description="If specified, solute will ensure no water is stored (optional)"
+        None,
+        description="If specified, solute will ensure no water is stored (optional)",
     )
     trrFreq: int = Field(
         0,
@@ -61,7 +63,8 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         description="If specified, this is the maximum atom index returned in the XTC file (optional)",
     )
     trrAtoms: Optional[Union[str, list[int]]] = Field(
-        None, description="If specified, solute will ensure no water is stored (optional)"
+        None,
+        description="If specified, solute will ensure no water is stored (optional)",
     )
     saveForcesInTrr: Optional[int] = Field(
         None,
@@ -80,7 +83,8 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         description="Either disable (1) or enable (0) separate PME stream (default: 1); warning, setting 0 may cause failures on some cards",
     )
     globalVarFilename: str = Field(
-        "globals.csv", description="File to write global variables to (default: globals.csv)"
+        "globals.csv",
+        description="File to write global variables to (default: globals.csv)",
     )
     disableCheckpointStateTests: int = Field(
         0,

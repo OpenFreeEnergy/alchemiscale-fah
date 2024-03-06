@@ -476,7 +476,7 @@ async def execute_DAG(
                 transformation_sk=transformation_sk,
                 task_sk=task_sk,
                 index=index,
-                encryption_public_key=encryption_public_key
+                encryption_public_key=encryption_public_key,
             )
 
             params = dict(context=context, raise_error=raise_error, **inputs)

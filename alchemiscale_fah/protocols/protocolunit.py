@@ -73,11 +73,11 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         effort_func = NONBONDED_EFFORT[nonbonded_settings]
         effort = effort_func(n_atoms)
 
-        project_efforts = np.array([effort_func(fah_project.n_atoms)
-                                    for fah_project in eligible_projects])
+        project_efforts = np.array(
+            [effort_func(fah_project.n_atoms) for fah_project in eligible_projects]
+        )
 
-        selected_project = eligible_projects[
-                np.abs(project_efforts - effort).argmin()]
+        selected_project = eligible_projects[np.abs(project_efforts - effort).argmin()]
 
         return selected_project
 
@@ -93,19 +93,20 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         """
         xml_str = '<?xml version="1.0" ?>'
-        xml_str += '<config>'
-        
+        xml_str += "<config>"
+
         for key, value in settings.fah_settings:
             if value is not None:
-                xml_str += f'<{key}>{value}</{key}>'
+                xml_str += f"<{key}>{value}</{key}>"
 
-        xml_str += '</config>'
+        xml_str += "</config>"
 
         return xml_str
 
     @abc.abstractmethod
-    def postprocess_globals(self, globals_csv_content: bytes, ctx: FahContext) -> dict[str, Any]:
-        ...
+    def postprocess_globals(
+        self, globals_csv_content: bytes, ctx: FahContext
+    ) -> dict[str, Any]: ...
 
     async def _execute(self, ctx: FahContext, *, setup, settings, **inputs):
         # take serialized system, state, integrator from SetupUnit
@@ -199,28 +200,20 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # read in results from `globals.csv`
         globals_csv = ctx.fah_client.get_gen_output_file_to_bytes(
-                project_id,
-                run_id,
-                clone_id,
-                0,
-                'globals.csv'
-                )
+            project_id, run_id, clone_id, 0, "globals.csv"
+        )
 
         outputs = self.postprocess_globals(globals_csv, ctx)
 
         # read in science log
         science_log = ctx.fah_client.get_gen_output_file_to_bytes(
-                project_id,
-                run_id,
-                clone_id,
-                0,
-                'science.log'
-                )
+            project_id, run_id, clone_id, 0, "science.log"
+        )
 
-        science_log_path = ctx.shared / 'science.log'
-        with open(ctx.shared / 'science.log', 'wb') as f:
+        science_log_path = ctx.shared / "science.log"
+        with open(ctx.shared / "science.log", "wb") as f:
             f.write(science_log)
 
-        outputs.update({'log': science_log_path})
+        outputs.update({"log": science_log_path})
 
         return outputs

@@ -496,7 +496,9 @@ class FahAdaptiveSamplingClient:
             )
         ]
 
-    def get_gen_output_file_to_bytes(self, project_id, run_id, clone_id, gen_id, src: Path):
+    def get_gen_output_file_to_bytes(
+        self, project_id, run_id, clone_id, gen_id, src: Path
+    ):
         return self._download_bytes(
             self.ws_url,
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/gens/{gen_id}/files/{src}",
