@@ -17,7 +17,7 @@ import shutil
 from concurrent.futures import ProcessPoolExecutor
 
 from gufe.tokenization import GufeKey
-from gufe.protocols.protocoldag import ProtocolDAG, ProtocolDAGResult, _pu_to_pur
+from gufe.protocols.protocoldag import ProtocolDAG, ProtocolDAGResult, _pu_to_pur, Context
 from gufe.protocols.protocolunit import ProtocolUnit, ProtocolUnitResult
 
 from alchemiscale.models import Scope, ScopedKey
@@ -30,7 +30,7 @@ from alchemiscale.compute.service import (
 )
 
 from .models import FahProject
-from .settings import FAHSynchronousComputeServiceSettings
+from .settings import FahAsynchronousComputeServiceSettings
 from .client import FahAdaptiveSamplingClient
 from .index import FahComputeServiceIndex
 from ..protocols.protocolunit import FahSimulationUnit, FahContext
@@ -39,7 +39,7 @@ from ..protocols.protocolunit import FahSimulationUnit, FahContext
 class FahAsynchronousComputeService(SynchronousComputeService):
     """An asynchronous compute service for utilizing a Folding@Home work server."""
 
-    def __init__(self, settings: FAHSynchronousComputeServiceSettings):
+    def __init__(self, settings: FahAsynchronousComputeServiceSettings):
         """Create a `FAHSynchronousComputeService` instance."""
         self.settings = settings
 
@@ -125,7 +125,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self.heartbeat_thread = None
 
     @classmethod
-    def update_index(settings: FAHSynchronousComputeServiceSettings):
+    def update_index(settings: FahAsynchronousComputeServiceSettings):
         # TODO: need to store some kind of state allowing compute service to go
         # down and come back up, resuming activity if it picks up a task it
         # was working on previously
@@ -387,7 +387,7 @@ async def execute_DAG(
     pool: ProcessPoolExecutor,
     fah_client: FahAdaptiveSamplingClient,
     fah_projects: List[FahProject],
-    project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]],
+    project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]] = (None, None, None),
     transformation_sk: ScopedKey,
     task_sk: ScopedKey,
     index: FahComputeServiceIndex,
@@ -451,61 +451,87 @@ async def execute_DAG(
     all_results = []  # successes AND failures
     shared_paths = []
     for unit in protocoldag.protocol_units:
-        # TODO: for each unit, check that results already exist; if so, use these
+        # for each unit, check that results already exist; if so, use these
         # and skip forward
-
-        # translate each `ProtocolUnit` in input into corresponding
-        # `ProtocolUnitResult`
-        inputs = _pu_to_pur(unit.inputs, results)
-
-        attempt = 0
-        while attempt <= n_retries:
-            shared = shared_basedir / f"shared_{str(unit.key)}_attempt_{attempt}"
-            shared_paths.append(shared)
-            shared.mkdir()
-
-            scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
-            scratch.mkdir()
-
-            context = FahContext(
-                shared=shared,
-                scratch=scratch,
-                fah_client=fah_client,
-                fah_projects=fah_projects,
-                project_run_clone=project_run_clone,
-                transformation_sk=transformation_sk,
-                task_sk=task_sk,
-                index=index,
-                encryption_public_key=encryption_public_key,
-            )
-
-            params = dict(context=context, raise_error=raise_error, **inputs)
-
-            # if this is a FahProtocolUnit, then we await its execution in-process
-            if isinstance(unit, FahSimulationUnit):
-                result = await unit.execute(**params)
-            else:
-                # otherwise, execute with process pool, allowing CPU bound
-                # units to parallelize across multiple tasks being executed
-                # at once
-
-                # TODO instead of immediately `await`ing here, we could build
-                # up a task for each ProtocolUnit whose deps are satisfied, and
-                # only proceed with additional ones as their deps are satisfied;
-                # would require restructuring this whole method around that
-                # approach, in particular handling retries
-                result = await loop.run_in_executor(pool, execute_unit, unit, params)
-
+        result = index.get_protocolunit_result(unit.key)
+        
+        if result is not None:
+            results[unit.key] = result
             all_results.append(result)
+        else:
 
-            if not keep_scratch:
-                shutil.rmtree(scratch)
+            # translate each `ProtocolUnit` in input into corresponding
+            # `ProtocolUnitResult`
+            inputs = _pu_to_pur(unit.inputs, results)
 
-            if result.ok():
-                # attach result to this `ProtocolUnit`
-                results[unit.key] = result
-                break
-            attempt += 1
+            attempt = 0
+            while attempt <= n_retries:
+                shared = shared_basedir / f"shared_{str(unit.key)}_attempt_{attempt}"
+
+                # if we partially executed a ProtocolUnit, but didn't complete it,
+                # start with a fresh shared directory
+                if shared.exists():
+                    shutil.rmtree(shared)
+
+                shared_paths.append(shared)
+                shared.mkdir()
+
+                scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
+
+                # if we partially executed a ProtocolUnit, but didn't complete it,
+                # start with a fresh scratch directory
+                if scratch.exists():
+                    shutil.rmtree(scratch)
+
+                scratch.mkdir()
+
+                context = Context(shared=shared,
+                                  scratch=scratch)
+
+                fah_context = FahContext(
+                    shared=shared,
+                    scratch=scratch,
+                    fah_client=fah_client,
+                    fah_projects=fah_projects,
+                    project_run_clone=project_run_clone,
+                    transformation_sk=transformation_sk,
+                    task_sk=task_sk,
+                    index=index,
+                    encryption_public_key=encryption_public_key,
+                )
+
+                params = dict(context=context, raise_error=raise_error, **inputs)
+                fah_params = dict(context=fah_context, raise_error=raise_error, **inputs)
+
+                # if this is a FahProtocolUnit, then we await its execution in-process
+                if isinstance(unit, FahSimulationUnit):
+                    result = await unit.execute(**fah_params)
+                else:
+                    # otherwise, execute with process pool, allowing CPU bound
+                    # units to parallelize across multiple tasks being executed
+                    # at once
+
+                    # TODO instead of immediately `await`ing here, we could build
+                    # up a task for each ProtocolUnit whose deps are satisfied, and
+                    # only proceed with additional ones as their deps are satisfied;
+                    # would require restructuring this whole method around that
+                    # approach, in particular handling retries
+                    result = await loop.run_in_executor(pool, execute_unit, unit, params)
+
+                all_results.append(result)
+
+                if not keep_scratch:
+                    shutil.rmtree(scratch)
+
+                if result.ok():
+                    # attach result to this `ProtocolUnit`
+                    results[unit.key] = result
+
+                    # hold on to ProtocolUnitResult so the DAG can be replayed if needed
+                    index.set_protocolunit_result(unit.key, result)
+
+                    break
+                attempt += 1
 
         if not result.ok():
             break
@@ -513,6 +539,10 @@ async def execute_DAG(
     if not keep_shared:
         for shared_path in shared_paths:
             shutil.rmtree(shared_path)
+
+    # clean up protocoldagresults from index object state store
+    for unit in protocoldag.protocol_units:
+        index.del_protocolunit_result(unit.key)
 
     return ProtocolDAGResult(
         name=protocoldag.name,

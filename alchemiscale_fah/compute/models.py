@@ -3,7 +3,7 @@ from typing import Optional
 from ipaddress import IPv4Address
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from alchemiscale.models import ScopedKey
 
@@ -36,7 +36,7 @@ class FahAdaptiveSamplingModel(BaseModel):
 
 
 class ProjectData(FahAdaptiveSamplingModel):
-    core_id: int = Field(..., description="The core ID.  E.g. 0xa8.")
+    core_id: str = Field(..., description="The core ID.  E.g. 0xa8.")
     contact: str = Field(
         ..., description="Email of the person responsible for the project."
     )
@@ -53,10 +53,14 @@ class ProjectData(FahAdaptiveSamplingModel):
     )
     compression: CompressionTypeEnum = Field(
         CompressionTypeEnum.ZLIB, description="Enable WU compression."
+
     )
 
+    #@validator('core_id', pre=True, always=True)
+    #def validate_core_id(cls, v, values, **kwargs):
+    #    return int(v, 16) if isinstance(v, str) else v
+
     # TODO: add validator to preconvert emails from strings
-    # TODO: add validator to preconvert core_id from string
     # TODO: add validator to handle compression case insensitive
 
 

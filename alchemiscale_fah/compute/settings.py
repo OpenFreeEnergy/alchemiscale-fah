@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from typing import Union, Optional, List, Dict, Tuple
 from pydantic import BaseModel, Field
 
@@ -17,11 +17,11 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
         ...,
         description="URL of the FAH work server to use.",
     )
-    fah_certificate_file: os.PathLike = Field(
+    fah_certificate_file: Path = Field(
         ...,
         description="Path to the TLS certificate to use for authentication with FAH servers",
     )
-    fah_key_file: os.PathLike = Field(
+    fah_key_file: Path = Field(
         ...,
         description="Path to the RSA private key used for TLS communication with FAH servers.",
     )
@@ -30,11 +30,11 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
         description="Whether to verify SSL certificate presented by the FAH server.",
     )
 
-    index_file: os.PathLike = Field(
+    index_file: Path = Field(
         ...,
         description="Path to leveldb index file used by the service to track its state.",
     )
-    obj_store: os.PathLike = Field(
+    obj_store: Path = Field(
         ...,
         description="Path to object store directory for larger objects, such as ProtocolDAGs.",
     )

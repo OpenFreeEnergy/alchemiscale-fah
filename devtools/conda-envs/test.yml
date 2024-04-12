@@ -51,6 +51,7 @@ dependencies:
 
   - pip:
     - git+https://github.com/openforcefield/alchemiscale@alchemiscale-fah
+    - git+https://github.com/choderalab/feflow@main
     - async_lru
     - git+https://github.com/datryllic/grolt@neo4j-5.x # neo4j test server deployment
     - git+https://github.com/OpenFreeEnergy/openfe-benchmarks

@@ -7,13 +7,15 @@
 import os
 import plyvel
 import json
+import shutil
 from typing import List, Tuple, Optional
 from pathlib import Path
 
 from gufe.tokenization import GufeKey, JSON_HANDLER, GufeTokenizable
 from gufe.protocols.protocoldag import ProtocolDAG
+from gufe.protocols.protocolunit import ProtocolUnitResult
 from alchemiscale.models import ScopedKey
-from alchemiscale.utils import keyed_dicts_to_gufe, gufe_to_keyed_dicts
+from alchemiscale.keyedchain import KeyedChain
 
 from .models import FahProject, FahRun, FahClone
 
@@ -22,9 +24,12 @@ class FahComputeServiceIndex:
     """Persistent index interface for FahComputeServices"""
 
     def __init__(
-        self, index_file: os.PathLike, obj_store: Optional[os.PathLike] = None
+        self, index_dir: os.PathLike, obj_store: Optional[os.PathLike] = None
     ):
-        self.db = plyvel.DB(index_file, create_if_missing=True)
+        self.index_dir = Path(index_dir).absolute()
+        self.index_dir.mkdir(parents=True, exist_ok=True)
+
+        self.db = plyvel.DB(str(self.index_dir), create_if_missing=True)
 
         # self.projects = self.db.prefixed_db(b"projects/")
         # self.runs = self.db.prefixed_db(b"runs/")
@@ -34,7 +39,7 @@ class FahComputeServiceIndex:
         # self.tasks = self.db.prefixed_db(b"tasks/")
 
         self.obj_store = Path(obj_store).absolute()
-        os.makedirs(obj_store, exist_ok=True)
+        self.obj_store.mkdir(parents=True, exist_ok=True)
 
     def set_project(self, project_id: str, fah_project: FahProject):
         """Set the metadata for the given PROJECT."""
@@ -46,10 +51,10 @@ class FahComputeServiceIndex:
     def get_project(self, project_id: str) -> FahProject:
         """Get metadata for the given PROJECT."""
         key = f"projects/{project_id}".encode("utf-8")
-        value = self.db.get(key).decode("utf-8")
+        value = self.db.get(key)
 
         if value is not None:
-            value = FahProject.parse_raw(value)
+            value = FahProject.parse_raw(value.decode("utf-8"))
 
         return value
 
@@ -58,12 +63,15 @@ class FahComputeServiceIndex:
         prefix = f"runs/{project_id}-".encode("utf-8")
         run_ids = sorted(
             [
-                int(key.split("-")[-1])
+                int(key.decode('utf-8').split("-")[-1])
                 for key in self.db.iterator(prefix=prefix, include_value=False)
             ]
         )
 
-        return str(run_ids[-1] + 1)
+        if run_ids:
+            return str(run_ids[-1] + 1)
+        else:
+            return "0"
 
     def set_run(self, project_id: str, run_id: str, fah_run: FahRun):
         """Set the metadata for the given RUN.
@@ -85,24 +93,27 @@ class FahComputeServiceIndex:
     def get_run(self, project_id: str, run_id: str) -> FahRun:
         """Get metadata for the given RUN."""
         key = f"runs/{project_id}-{run_id}".encode("utf-8")
-        value = self.db.get(key).decode("utf-8")
+        value = self.db.get(key)
 
         if value is not None:
-            value = FahRun.parse_raw(value)
+            value = FahRun.parse_raw(value.decode("utf-8"))
 
         return value
 
     def get_run_clone_next(self, project_id: str, run_id: str) -> FahRun:
-        """Get metadata for the given RUN."""
+        """Get next available CLONE id for the given RUN."""
         prefix = f"clones/{project_id}-{run_id}-".encode("utf-8")
-        run_ids = sorted(
+        clone_ids = sorted(
             [
-                int(key.split("-")[-1])
+                int(key.decode('utf-8').split("-")[-1])
                 for key in self.db.iterator(prefix=prefix, include_value=False)
             ]
         )
 
-        return str(run_ids[-1] + 1)
+        if clone_ids:
+            return str(clone_ids[-1] + 1)
+        else:
+            return "0"
 
     def set_clone(
         self, project_id: str, run_id: str, clone_id: str, fah_clone: FahClone
@@ -126,10 +137,10 @@ class FahComputeServiceIndex:
     def get_clone(self, project_id: str, run_id: str, clone_id: str) -> FahClone:
         """Get metadata for the given CLONE."""
         key = f"clones/{project_id}-{run_id}-{clone_id}".encode("utf-8")
-        value = self.db.get(key).decode("utf-8")
+        value = self.db.get(key)
 
         if value is not None:
-            value = FahClone.parse_raw(value)
+            value = FahClone.parse_raw(value.decode("utf-8"))
 
         return value
 
@@ -163,10 +174,10 @@ class FahComputeServiceIndex:
     ) -> Tuple[Optional[str], Optional[str]]:
         """Get the PROJECT and RUN used for the given Transformation, if already present."""
         key = f"transformations/{transformation}".encode("utf-8")
-        value = self.db.get(key).decode("utf-8")
+        value = self.db.get(key)
 
         if value is not None:
-            value = value.split("-")
+            value = value.decode("utf-8").split("-")
         else:
             value = (None, None)
 
@@ -203,10 +214,10 @@ class FahComputeServiceIndex:
     ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """Get the PROJECT, RUN, and CLONE used for the given Task, already present."""
         key = f"tasks/{task}".encode("utf-8")
-        value = self.db.get(key).decode("utf-8")
+        value = self.db.get(key)
 
         if value is not None:
-            value = value.split("-")
+            value = value.decode("utf-8").split("-")
         else:
             value = (None, None, None)
 
@@ -219,16 +230,47 @@ class FahComputeServiceIndex:
         protocoldag_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(protocoldag_path, "w") as f:
-            json.dump(gufe_to_keyed_dicts(protocoldag), f, cls=JSON_HANDLER.encoder)
+            json.dump(KeyedChain.gufe_to_keyed_chain_rep(protocoldag), f, cls=JSON_HANDLER.encoder)
 
         return protocoldag_path
 
-    def get_task_protocoldag(self, task: ScopedKey) -> ProtocolDAG:
+    def get_task_protocoldag(self, task: ScopedKey) -> Optional[ProtocolDAG]:
         """Get the ProtocolDAG for the given Task."""
         # TODO: add zstandard compression
         protocoldag_path = self.obj_store / "tasks" / str(task) / "protocoldag.json"
 
+        if not protocoldag_path.exists():
+            return None
+
         with open(protocoldag_path, "r") as f:
-            protocoldag = keyed_dicts_to_gufe(json.load(f, cls=JSON_HANDLER.decoder))
+            protocoldag = KeyedChain(json.load(f, cls=JSON_HANDLER.decoder)).to_gufe()
 
         return protocoldag
+
+    def set_protocolunit_result(self, protocolunit: GufeKey, protocolunitresult: ProtocolUnitResult) -> Path:
+        protocolunitresult_path = self.obj_store / "protocolunitresults" / str(protocolunit) / "protocolunitresult.json"
+        protocolunitresult_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(protocolunitresult_path, "w") as f:
+            json.dump(KeyedChain.gufe_to_keyed_chain_rep(protocolunitresult), f, cls=JSON_HANDLER.encoder)
+
+        return protocolunitresult_path
+
+    def get_protocolunit_result(self, protocolunit: GufeKey) -> Optional[ProtocolUnitResult]:
+        protocolunitresult_path = self.obj_store / "protocolunitresults" / str(protocolunit) / "protocolunitresult.json"
+
+        if not protocolunitresult_path.exists():
+            return None
+
+        with open(protocolunitresult_path, "r") as f:
+            protocolunitresult = KeyedChain(json.load(f, cls=JSON_HANDLER.decoder)).to_gufe()
+
+        return protocolunitresult
+
+    def del_protocolunit_result(self, protocolunit: GufeKey):
+        protocolunit_path = self.obj_store / "protocolunitresults" / str(protocolunit)
+
+        if not protocolunit_path.exists():
+            return None
+
+        shutil.rmtree(protocolunit_path)

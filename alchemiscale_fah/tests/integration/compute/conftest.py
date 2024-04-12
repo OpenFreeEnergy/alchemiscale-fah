@@ -4,7 +4,9 @@ from copy import copy
 import pytest
 import uvicorn
 
+from gufe import ChemicalSystem, Transformation, AlchemicalNetwork
 from alchemiscale.tests.integration.utils import running_service
+from openfe_benchmarks import tyk2
 
 from alchemiscale_fah.compute import api, client
 from alchemiscale_fah.compute.api import WSStateDB
@@ -12,26 +14,9 @@ from alchemiscale_fah.settings.fah_wsapi_settings import WSAPISettings
 from alchemiscale_fah.tests.integration.compute.utils import get_wsapi_settings_override
 
 
-# @pytest.fixture(scope="module")
-# def wsapi_settings(tmpdir_factory):
-#    with tmpdir_factory.mktemp("wsapi_state").as_cwd():
-#        os.environ["WSAPI_STATE_DIR"] = 'ws_state'
-#        os.environ["WSAPI_INPUTS_DIR"] = 'ws_inputs'
-#        os.environ["WSAPI_OUTPUTS_DIR"] = 'ws_outputs'
-#
-#    return WSAPISettings()
-
 
 @pytest.fixture(scope="module")
 def work_server_api(tmpdir_factory):
-    # def get_wsstatedb_override():
-    #    return api.WSStateDB(wsapi_settings.WSAPI_STATE_DIR)
-
-    # def get_inputs_dir_override():
-    #    return wsapi_settings.WSAPI_INPUTS_DIR
-
-    # def get_outputs_dir_override():
-    #    return wsapi_settings.WSAPI_OUTPUTS_DIR
     with tmpdir_factory.mktemp("wsapi_state").as_cwd():
 
         overrides = copy(api.app.dependency_overrides)
@@ -39,9 +24,7 @@ def work_server_api(tmpdir_factory):
         api.app.dependency_overrides[api.get_wsapi_settings] = (
             get_wsapi_settings_override
         )
-        # api.app.dependency_overrides[api.get_wsstatedb_depends] = get_inputs_dir_override
-        # api.app.dependency_overrides[api.get_inputs_dir_depends] = get_inputs_dir_override
-        # api.app.dependency_overrides[api.get_outputs_dir_depends] = get_outputs_dir_override
+
         yield api.app, get_wsapi_settings_override()
 
         api.app.dependency_overrides = overrides
@@ -82,11 +65,49 @@ def fah_adaptive_sampling_client(
     fahasc._reset_mock_ws()
 
 
-# @pytest.fixture(scope='function')
-# def ws_statedb():
-#    settings = get_wsapi_settings_override()
-#
-#    yield None
-#
-#    ws_statedb = WSStateDB(settings.WSAPI_STATE_DIR, settings.WSAPI_SERVER_ID)
-#    ws_statedb.reset()
+def generate_tyk2_solvent_network(protocol):
+    tyk2s = tyk2.get_system()
+
+    solvent_network = []
+    for mapping in  tyk2s.ligand_network.edges:
+
+        solvent_transformation = Transformation(
+                stateA=ChemicalSystem(
+                    components={'ligand': mapping.componentA, 'solvent': tyk2s.solvent_component},
+                    name=f"{mapping.componentA.name}_water"),
+                stateB=ChemicalSystem(
+                    components={'ligand': mapping.componentB, 'solvent': tyk2s.solvent_component},
+                    name=f"{mapping.componentB.name}_water"),
+                mapping={'ligand': mapping},
+                protocol=protocol,
+                name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_solvent",
+            )
+
+        solvent_network.append(solvent_transformation)
+
+    return AlchemicalNetwork(
+        edges=solvent_network, name="tyk2_solvent"
+    )
+
+def generate_tyk2_complex_network(protocol):
+    tyk2s = tyk2.get_system()
+
+    complex_network  = []
+    for mapping in  tyk2s.ligand_network.edges:
+        complex_transformation = Transformation(
+                stateA=ChemicalSystem(
+                    components={'protein': tyk2s.protein_component, 'ligand': mapping.componentA, 'solvent': tyk2s.solvent_component},
+                    name=f"{mapping.componentA.name}_complex"),
+                stateB=ChemicalSystem(
+                    components={'protein': tyk2s.protein_component, 'ligand': mapping.componentB, 'solvent': tyk2s.solvent_component},
+                    name=f"{mapping.componentB.name}_complex"),
+                mapping={'ligand': mapping},
+                protocol=protocol,
+                name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_complex",
+                )
+
+        complex_network.append(complex_transformation)
+
+    return AlchemicalNetwork(
+        edges=complex_network, name="tyk2_complex"
+    )

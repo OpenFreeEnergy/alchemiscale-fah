@@ -65,14 +65,14 @@ class FahAdaptiveSamplingClient:
         self.ws_url = ws_url.geturl()
         self.ws_ip_addr = socket.gethostbyname(ws_url.hostname)
 
-        self.certificate = (
-            self.read_certificate(certificate_file) if certificate_file else None
-        )
+        #self.certificate = (
+        #    self.read_certificate(certificate_file) if certificate_file else None
+        #)
 
-        if key_file is None:
-            self.key = self.create_key()
-        else:
-            self.key = self.read_key(key_file)
+        #if key_file is None:
+        #    self.key = self.create_key()
+        #else:
+        #    self.key = self.read_key(key_file)
 
         self.cert = (certificate_file, key_file)
         self.verify = verify
@@ -362,6 +362,28 @@ class FahAdaptiveSamplingClient:
             bytedata,
         )
 
+    def get_run_file(self, project_id, run_id, src, dest):
+        """Download a file from the given RUN directory tree.
+
+        Parameters
+        ----------
+        project_id
+            ID of the project
+       run_id 
+            ID of the run
+        src
+            File to download.
+        dest
+            Path to download file to.
+
+        """
+        self._download(self.ws_url, f"/api/projects/{project_id}/files/RUN{run_id}/{src}", dest)
+
+    def get_run_file_to_bytes(self, project_id, run_id, src):
+        return self._download_bytes(
+            self.ws_url, f"/api/projects/{project_id}/files/RUN{run_id}/{src}"
+        )
+
     def delete_run_file(self, project_id, run_id, path: Path):
         self._delete(
             self.ws_url,
@@ -371,9 +393,19 @@ class FahAdaptiveSamplingClient:
     def create_clone(self, project_id, run_id, clone_id):
         """Start a new CLONE for a given RUN."""
 
+        #self._put(
+        #    self.ws_url,
+        #    f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/create",
+        #)
+        #self._put(
+        #    self.ws_url,
+        #    f"/api/projects/{project_id}/runs/{run_id}?clones=1"#&offset={clone_id}"
+        #)
+
         self._put(
             self.ws_url,
-            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/create",
+            f"/api/projects/{project_id}/runs/{run_id}/create",
+            data={"clones": int(clone_id)+1}
         )
 
     def fail_clone(self, project_id, run_id, clone_id):

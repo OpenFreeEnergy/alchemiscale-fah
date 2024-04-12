@@ -5,21 +5,25 @@
 """
 
 import abc
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple, Optional, Any, Union
 import asyncio
 from dataclasses import dataclass
+import datetime
+import traceback
 
 import numpy as np
 import pandas as pd
-from gufe.protocols.protocolunit import ProtocolUnit, Context
+
+from gufe.protocols.protocolunit import ProtocolUnit, ProtocolUnitResult, ProtocolUnitFailure, Context
 from gufe.settings import Settings
+
 from alchemiscale.models import ScopedKey
 from feflow.utils.data import deserialize
 
 from ..compute.client import FahAdaptiveSamplingClient
 from ..compute.models import JobStateEnum, FahProject, FahRun, FahClone
 from ..compute.index import FahComputeServiceIndex
-from ..utils import NONBONDED_EFFORT
+from ..utils import NONBONDED_EFFORT, NonbondedSettings
 
 
 class FahExecutionException(RuntimeError): ...
@@ -28,17 +32,66 @@ class FahExecutionException(RuntimeError): ...
 @dataclass
 class FahContext(Context):
     fah_client: FahAdaptiveSamplingClient
-    fah_poll_sleep: int = 60
     fah_projects: list[FahProject]
     project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]]
     transformation_sk: ScopedKey
     task_sk: ScopedKey
     index: FahComputeServiceIndex
+    fah_poll_sleep: int = 60
     encryption_public_key: Optional[str] = None
 
 
 class FahSimulationUnit(ProtocolUnit):
-    ...
+
+    async def execute(self, *, 
+                context: Context,
+                raise_error: bool = False,
+                **inputs) -> Union[ProtocolUnitResult, ProtocolUnitFailure]:
+        """Given `ProtocolUnitResult` s from dependencies, execute this `ProtocolUnit`.
+
+        Parameters
+        ----------
+        context : Context
+            Execution context for this `ProtocolUnit`; includes e.g. ``shared``
+            and ``scratch`` `Path` s.
+        raise_error : bool
+            If True, raise any errors instead of catching and returning a
+            `ProtocolUnitFailure` default False
+        **inputs
+            Keyword arguments giving the named inputs to `_execute`.
+            These can include `ProtocolUnitResult` objects from `ProtocolUnit`
+            objects this unit is dependent on.
+
+        """
+        result: Union[ProtocolUnitResult, ProtocolUnitFailure]
+        start = datetime.datetime.now()
+
+        try:
+            outputs = await self._execute(context, **inputs)
+            result = ProtocolUnitResult(
+                name=self.name, source_key=self.key, inputs=inputs, outputs=outputs,
+                start_time=start, end_time=datetime.datetime.now(),
+            )
+
+        except KeyboardInterrupt:
+            # if we "fail" due to a KeyboardInterrupt, we always want to raise
+            raise
+        except Exception as e:
+            if raise_error:
+                raise
+
+            result = ProtocolUnitFailure(
+                name=self._name,
+                source_key=self.key,
+                inputs=inputs,
+                outputs=dict(),
+                exception=(e.__class__.__qualname__, e.args),
+                traceback=traceback.format_exc(),
+                start_time=start,
+                end_time=datetime.datetime.now(),
+            )
+
+        return result
 
     def _execute(self, ctx, *, state_a, state_b, mapping, settings, **inputs):
         return {}
@@ -70,7 +123,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # get efforts for each project, select project with closest effort to
         # this Transformation
-        effort_func = NONBONDED_EFFORT[nonbonded_settings]
+        effort_func = NONBONDED_EFFORT[NonbondedSettings[nonbonded_settings]]
         effort = effort_func(n_atoms)
 
         project_efforts = np.array(
@@ -125,7 +178,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         # also need to create a CLONE for this Task
         if project_id is None and run_id is None:
             # select PROJECT to use for execution
-            project_id = self.select_project(ctx.fah_projects, settings).project_id
+            project_id = self.select_project(n_atoms, ctx.fah_projects, settings).project_id
 
             # get next available RUN id
             run_id = ctx.index.get_project_run_next(project_id)
@@ -150,7 +203,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
             core_file_content = self.generate_core_settings_file(settings)
 
             # get next available CLONE id
-            run_id = ctx.index.get_run_clone_next(project_id, run_id)
+            clone_id = ctx.index.get_run_clone_next(project_id, run_id)
 
             # create CLONE for this Task
             ctx.fah_client.create_clone_file_from_bytes(
@@ -187,9 +240,9 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
             # check for and await sleep results from work server
             jobdata = ctx.fah_client.get_clone(project_id, run_id, clone_id)
 
-            if jobdata.state == JobStateEnum.FINISHED:
+            if JobStateEnum[jobdata.state] is JobStateEnum.FINISHED:
                 break
-            elif jobdata.state == JobStateEnum.FAILED:
+            elif JobStateEnum[jobdata.state] is JobStateEnum.FAILED:
                 raise FahExecutionException(
                     "Consecutive failed or faulty WUs exceeded the "
                     f"maximum for RUN {run_id} in PROJECT {project_id}"
@@ -200,7 +253,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # read in results from `globals.csv`
         globals_csv = ctx.fah_client.get_gen_output_file_to_bytes(
-            project_id, run_id, clone_id, 0, "globals.csv"
+            project_id, run_id, clone_id, 0, settings.fah_settings.globalVarFilename
         )
 
         outputs = self.postprocess_globals(globals_csv, ctx)
