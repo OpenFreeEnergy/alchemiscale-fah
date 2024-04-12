@@ -72,13 +72,12 @@ class TestFahAdaptiveSamplingClient:
         dest = "testfile.out"
 
         # try creating file
-        client.create_run_file_from_bytes(project_id, run_id,  content, dest)
+        client.create_run_file_from_bytes(project_id, run_id, content, dest)
 
         # try getting it back
         content_ = client.get_run_file_to_bytes(project_id, run_id, dest)
 
         assert content_ == content
-
 
     def test_create_clone(self, fah_adaptive_sampling_client):
         client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client

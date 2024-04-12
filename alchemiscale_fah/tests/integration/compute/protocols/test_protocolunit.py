@@ -68,7 +68,6 @@ class DummyFahOpenMMSimulationUnit(FahOpenMMSimulationUnit):
         }
 
 
-
 class TestFahOpenMMSimulationUnit:
 
     @pytest.fixture

@@ -41,7 +41,7 @@ class FahNonEqulibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
             If True, `line` is a header line
 
         """
-        return "kT" in line.decode('utf-8')
+        return "kT" in line.decode("utf-8")
 
     def _get_last_header_line(self, csv_content: bytes) -> int:
         """

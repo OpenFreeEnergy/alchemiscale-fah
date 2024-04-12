@@ -23,9 +23,7 @@ from .models import FahProject, FahRun, FahClone
 class FahComputeServiceIndex:
     """Persistent index interface for FahComputeServices"""
 
-    def __init__(
-        self, index_dir: os.PathLike, obj_store: Optional[os.PathLike] = None
-    ):
+    def __init__(self, index_dir: os.PathLike, obj_store: Optional[os.PathLike] = None):
         self.index_dir = Path(index_dir).absolute()
         self.index_dir.mkdir(parents=True, exist_ok=True)
 
@@ -63,7 +61,7 @@ class FahComputeServiceIndex:
         prefix = f"runs/{project_id}-".encode("utf-8")
         run_ids = sorted(
             [
-                int(key.decode('utf-8').split("-")[-1])
+                int(key.decode("utf-8").split("-")[-1])
                 for key in self.db.iterator(prefix=prefix, include_value=False)
             ]
         )
@@ -105,7 +103,7 @@ class FahComputeServiceIndex:
         prefix = f"clones/{project_id}-{run_id}-".encode("utf-8")
         clone_ids = sorted(
             [
-                int(key.decode('utf-8').split("-")[-1])
+                int(key.decode("utf-8").split("-")[-1])
                 for key in self.db.iterator(prefix=prefix, include_value=False)
             ]
         )
@@ -230,7 +228,11 @@ class FahComputeServiceIndex:
         protocoldag_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(protocoldag_path, "w") as f:
-            json.dump(KeyedChain.gufe_to_keyed_chain_rep(protocoldag), f, cls=JSON_HANDLER.encoder)
+            json.dump(
+                KeyedChain.gufe_to_keyed_chain_rep(protocoldag),
+                f,
+                cls=JSON_HANDLER.encoder,
+            )
 
         return protocoldag_path
 
@@ -247,23 +249,43 @@ class FahComputeServiceIndex:
 
         return protocoldag
 
-    def set_protocolunit_result(self, protocolunit: GufeKey, protocolunitresult: ProtocolUnitResult) -> Path:
-        protocolunitresult_path = self.obj_store / "protocolunitresults" / str(protocolunit) / "protocolunitresult.json"
+    def set_protocolunit_result(
+        self, protocolunit: GufeKey, protocolunitresult: ProtocolUnitResult
+    ) -> Path:
+        protocolunitresult_path = (
+            self.obj_store
+            / "protocolunitresults"
+            / str(protocolunit)
+            / "protocolunitresult.json"
+        )
         protocolunitresult_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(protocolunitresult_path, "w") as f:
-            json.dump(KeyedChain.gufe_to_keyed_chain_rep(protocolunitresult), f, cls=JSON_HANDLER.encoder)
+            json.dump(
+                KeyedChain.gufe_to_keyed_chain_rep(protocolunitresult),
+                f,
+                cls=JSON_HANDLER.encoder,
+            )
 
         return protocolunitresult_path
 
-    def get_protocolunit_result(self, protocolunit: GufeKey) -> Optional[ProtocolUnitResult]:
-        protocolunitresult_path = self.obj_store / "protocolunitresults" / str(protocolunit) / "protocolunitresult.json"
+    def get_protocolunit_result(
+        self, protocolunit: GufeKey
+    ) -> Optional[ProtocolUnitResult]:
+        protocolunitresult_path = (
+            self.obj_store
+            / "protocolunitresults"
+            / str(protocolunit)
+            / "protocolunitresult.json"
+        )
 
         if not protocolunitresult_path.exists():
             return None
 
         with open(protocolunitresult_path, "r") as f:
-            protocolunitresult = KeyedChain(json.load(f, cls=JSON_HANDLER.decoder)).to_gufe()
+            protocolunitresult = KeyedChain(
+                json.load(f, cls=JSON_HANDLER.decoder)
+            ).to_gufe()
 
         return protocolunitresult
 

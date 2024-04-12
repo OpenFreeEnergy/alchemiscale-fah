@@ -53,11 +53,10 @@ class ProjectData(FahAdaptiveSamplingModel):
     )
     compression: CompressionTypeEnum = Field(
         CompressionTypeEnum.ZLIB, description="Enable WU compression."
-
     )
 
-    #@validator('core_id', pre=True, always=True)
-    #def validate_core_id(cls, v, values, **kwargs):
+    # @validator('core_id', pre=True, always=True)
+    # def validate_core_id(cls, v, values, **kwargs):
     #    return int(v, 16) if isinstance(v, str) else v
 
     # TODO: add validator to preconvert emails from strings

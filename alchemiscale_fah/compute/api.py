@@ -24,7 +24,7 @@ class WSStateDB:
 
     def __init__(self, state_dir: os.PathLike, server_id: int):
         self.state_dir = state_dir
-        #self.db = plyvel.DB(str(state_dir.absolute()), create_if_missing=True)
+        # self.db = plyvel.DB(str(state_dir.absolute()), create_if_missing=True)
 
         # with self.db.write_batch(transaction=True) as wb:
         #    wb.put("server-id", str(server_id).encode('utf-8'))
@@ -77,7 +77,7 @@ class WSStateDB:
                         clone=clone_id,
                         gen=1,
                         state="READY",
-                        last=datetime.utcnow()
+                        last=datetime.utcnow(),
                     )
                     .json()
                     .encode("utf-8")
@@ -108,7 +108,7 @@ class WSStateDB:
                         clone=clone_id,
                         gen=1,
                         state="FINISHED",
-                        last=datetime.utcnow()
+                        last=datetime.utcnow(),
                     )
                     .json()
                     .encode("utf-8")
@@ -265,7 +265,7 @@ def create_clone(
     statedb: WSStateDB = Depends(get_wsstatedb_depends),
 ):
     # create clone instance in database
-    statedb.create_clone(project_id, run_id, clones-1)
+    statedb.create_clone(project_id, run_id, clones - 1)
 
 
 @app.get("/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}")
@@ -280,7 +280,7 @@ def get_clone(
     # get clone state information
     jobdata = statedb.get_clone(project_id, run_id, clone_id)
 
-    # if enough time has passed (3 seconds), then set the job as complete, 
+    # if enough time has passed (3 seconds), then set the job as complete,
     # then return again
     if (datetime.utcnow() - jobdata.last).total_seconds() > 3:
         _finish_clone(project_id, run_id, clone_id, outputs_dir, statedb)
@@ -344,7 +344,9 @@ def get_clone_output_file(
     return Response(file_data)
 
 
-@app.get("/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/gens/{gen_id}/files/{src}")
+@app.get(
+    "/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/gens/{gen_id}/files/{src}"
+)
 def get_gen_output_file(
     project_id,
     run_id,
@@ -375,6 +377,7 @@ def finish_clone(
 ):
     _finish_clone(project_id, run_id, clone_id, outputs_dir, statedb)
 
+
 def _finish_clone(
     project_id,
     run_id,
@@ -395,7 +398,7 @@ def _finish_clone(
     ) as globals_csv_path:
         shutil.copy(globals_csv_path, globals_csv_output_path)
 
-    with open(gen_outputs / 'science.log', 'w') as f:
+    with open(gen_outputs / "science.log", "w") as f:
         f.write("Science!")
 
     # set finished state

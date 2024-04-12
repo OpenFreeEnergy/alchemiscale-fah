@@ -14,7 +14,6 @@ from alchemiscale_fah.settings.fah_wsapi_settings import WSAPISettings
 from alchemiscale_fah.tests.integration.compute.utils import get_wsapi_settings_override
 
 
-
 @pytest.fixture(scope="module")
 def work_server_api(tmpdir_factory):
     with tmpdir_factory.mktemp("wsapi_state").as_cwd():
@@ -69,45 +68,60 @@ def generate_tyk2_solvent_network(protocol):
     tyk2s = tyk2.get_system()
 
     solvent_network = []
-    for mapping in  tyk2s.ligand_network.edges:
+    for mapping in tyk2s.ligand_network.edges:
 
         solvent_transformation = Transformation(
-                stateA=ChemicalSystem(
-                    components={'ligand': mapping.componentA, 'solvent': tyk2s.solvent_component},
-                    name=f"{mapping.componentA.name}_water"),
-                stateB=ChemicalSystem(
-                    components={'ligand': mapping.componentB, 'solvent': tyk2s.solvent_component},
-                    name=f"{mapping.componentB.name}_water"),
-                mapping={'ligand': mapping},
-                protocol=protocol,
-                name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_solvent",
-            )
+            stateA=ChemicalSystem(
+                components={
+                    "ligand": mapping.componentA,
+                    "solvent": tyk2s.solvent_component,
+                },
+                name=f"{mapping.componentA.name}_water",
+            ),
+            stateB=ChemicalSystem(
+                components={
+                    "ligand": mapping.componentB,
+                    "solvent": tyk2s.solvent_component,
+                },
+                name=f"{mapping.componentB.name}_water",
+            ),
+            mapping={"ligand": mapping},
+            protocol=protocol,
+            name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_solvent",
+        )
 
         solvent_network.append(solvent_transformation)
 
-    return AlchemicalNetwork(
-        edges=solvent_network, name="tyk2_solvent"
-    )
+    return AlchemicalNetwork(edges=solvent_network, name="tyk2_solvent")
+
 
 def generate_tyk2_complex_network(protocol):
     tyk2s = tyk2.get_system()
 
-    complex_network  = []
-    for mapping in  tyk2s.ligand_network.edges:
+    complex_network = []
+    for mapping in tyk2s.ligand_network.edges:
         complex_transformation = Transformation(
-                stateA=ChemicalSystem(
-                    components={'protein': tyk2s.protein_component, 'ligand': mapping.componentA, 'solvent': tyk2s.solvent_component},
-                    name=f"{mapping.componentA.name}_complex"),
-                stateB=ChemicalSystem(
-                    components={'protein': tyk2s.protein_component, 'ligand': mapping.componentB, 'solvent': tyk2s.solvent_component},
-                    name=f"{mapping.componentB.name}_complex"),
-                mapping={'ligand': mapping},
-                protocol=protocol,
-                name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_complex",
-                )
+            stateA=ChemicalSystem(
+                components={
+                    "protein": tyk2s.protein_component,
+                    "ligand": mapping.componentA,
+                    "solvent": tyk2s.solvent_component,
+                },
+                name=f"{mapping.componentA.name}_complex",
+            ),
+            stateB=ChemicalSystem(
+                components={
+                    "protein": tyk2s.protein_component,
+                    "ligand": mapping.componentB,
+                    "solvent": tyk2s.solvent_component,
+                },
+                name=f"{mapping.componentB.name}_complex",
+            ),
+            mapping={"ligand": mapping},
+            protocol=protocol,
+            name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_complex",
+        )
 
         complex_network.append(complex_transformation)
 
-    return AlchemicalNetwork(
-        edges=complex_network, name="tyk2_complex"
-    )
+    return AlchemicalNetwork(edges=complex_network, name="tyk2_complex")

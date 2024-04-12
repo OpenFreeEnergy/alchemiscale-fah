@@ -14,7 +14,12 @@ import traceback
 import numpy as np
 import pandas as pd
 
-from gufe.protocols.protocolunit import ProtocolUnit, ProtocolUnitResult, ProtocolUnitFailure, Context
+from gufe.protocols.protocolunit import (
+    ProtocolUnit,
+    ProtocolUnitResult,
+    ProtocolUnitFailure,
+    Context,
+)
 from gufe.settings import Settings
 
 from alchemiscale.models import ScopedKey
@@ -43,10 +48,9 @@ class FahContext(Context):
 
 class FahSimulationUnit(ProtocolUnit):
 
-    async def execute(self, *, 
-                context: Context,
-                raise_error: bool = False,
-                **inputs) -> Union[ProtocolUnitResult, ProtocolUnitFailure]:
+    async def execute(
+        self, *, context: Context, raise_error: bool = False, **inputs
+    ) -> Union[ProtocolUnitResult, ProtocolUnitFailure]:
         """Given `ProtocolUnitResult` s from dependencies, execute this `ProtocolUnit`.
 
         Parameters
@@ -69,8 +73,12 @@ class FahSimulationUnit(ProtocolUnit):
         try:
             outputs = await self._execute(context, **inputs)
             result = ProtocolUnitResult(
-                name=self.name, source_key=self.key, inputs=inputs, outputs=outputs,
-                start_time=start, end_time=datetime.datetime.now(),
+                name=self.name,
+                source_key=self.key,
+                inputs=inputs,
+                outputs=outputs,
+                start_time=start,
+                end_time=datetime.datetime.now(),
             )
 
         except KeyboardInterrupt:
@@ -178,7 +186,9 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         # also need to create a CLONE for this Task
         if project_id is None and run_id is None:
             # select PROJECT to use for execution
-            project_id = self.select_project(n_atoms, ctx.fah_projects, settings).project_id
+            project_id = self.select_project(
+                n_atoms, ctx.fah_projects, settings
+            ).project_id
 
             # get next available RUN id
             run_id = ctx.index.get_project_run_next(project_id)

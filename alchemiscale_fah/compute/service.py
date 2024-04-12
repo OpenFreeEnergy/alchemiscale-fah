@@ -17,7 +17,12 @@ import shutil
 from concurrent.futures import ProcessPoolExecutor
 
 from gufe.tokenization import GufeKey
-from gufe.protocols.protocoldag import ProtocolDAG, ProtocolDAGResult, _pu_to_pur, Context
+from gufe.protocols.protocoldag import (
+    ProtocolDAG,
+    ProtocolDAGResult,
+    _pu_to_pur,
+    Context,
+)
 from gufe.protocols.protocolunit import ProtocolUnit, ProtocolUnitResult
 
 from alchemiscale.models import Scope, ScopedKey
@@ -387,7 +392,11 @@ async def execute_DAG(
     pool: ProcessPoolExecutor,
     fah_client: FahAdaptiveSamplingClient,
     fah_projects: List[FahProject],
-    project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]] = (None, None, None),
+    project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]] = (
+        None,
+        None,
+        None,
+    ),
     transformation_sk: ScopedKey,
     task_sk: ScopedKey,
     index: FahComputeServiceIndex,
@@ -454,7 +463,7 @@ async def execute_DAG(
         # for each unit, check that results already exist; if so, use these
         # and skip forward
         result = index.get_protocolunit_result(unit.key)
-        
+
         if result is not None:
             results[unit.key] = result
             all_results.append(result)
@@ -485,8 +494,7 @@ async def execute_DAG(
 
                 scratch.mkdir()
 
-                context = Context(shared=shared,
-                                  scratch=scratch)
+                context = Context(shared=shared, scratch=scratch)
 
                 fah_context = FahContext(
                     shared=shared,
@@ -501,7 +509,9 @@ async def execute_DAG(
                 )
 
                 params = dict(context=context, raise_error=raise_error, **inputs)
-                fah_params = dict(context=fah_context, raise_error=raise_error, **inputs)
+                fah_params = dict(
+                    context=fah_context, raise_error=raise_error, **inputs
+                )
 
                 # if this is a FahProtocolUnit, then we await its execution in-process
                 if isinstance(unit, FahSimulationUnit):
@@ -516,7 +526,9 @@ async def execute_DAG(
                     # only proceed with additional ones as their deps are satisfied;
                     # would require restructuring this whole method around that
                     # approach, in particular handling retries
-                    result = await loop.run_in_executor(pool, execute_unit, unit, params)
+                    result = await loop.run_in_executor(
+                        pool, execute_unit, unit, params
+                    )
 
                 all_results.append(result)
 
