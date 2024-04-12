@@ -42,6 +42,7 @@ dependencies:
   - pytest
   - pytest-xdist
   - pytest-cov
+  - pytest-asyncio
   - coverage
   - moto
 
