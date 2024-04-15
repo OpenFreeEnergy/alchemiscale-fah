@@ -209,13 +209,14 @@ class FahAdaptiveSamplingClient:
         as_csr = ASCSR(csr=self.read_csr_pem(self.csr_file))
         certs = ASCertificate(
             **self._post(
-            self.as_url,
-            "/api/auth/csr",
-            as_csr.dict(),
-        ))
+                self.as_url,
+                "/api/auth/csr",
+                as_csr.dict(),
+            )
+        )
 
         # overwrite certificate file with new certificate contents
-        with open(self.certificate_file, 'w') as f:
+        with open(self.certificate_file, "w") as f:
             f.write(certs.certificate)
 
     def as_get_ws(self) -> ASWorkServerData:
