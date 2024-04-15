@@ -21,6 +21,8 @@ from cryptography.hazmat.primitives import hashes
 
 from .models import (
     ProjectData,
+    ASCSR,
+    ASCertificate,
     ASWorkServerData,
     ASProjectData,
     JobData,
@@ -40,6 +42,7 @@ class FahAdaptiveSamplingClient:
         ws_url: Optional[str] = None,
         certificate_file: Optional[os.PathLike] = None,
         key_file: Optional[os.PathLike] = None,
+        csr_file: Optional[os.PathLike] = None,
         verify: bool = True,
     ):
         """Create a new FahAdaptiveSamplingClient instance.
@@ -56,6 +59,11 @@ class FahAdaptiveSamplingClient:
         key_file
             Path to the key file to use for encrypted communication, in PEM
             format. Only needed for use with real FAH servers, not testing.
+        csr_file
+            Path to the certificate signing request (CSR) file generated from
+            private key, in PEM format. Only needed for use with real FAH
+            servers, not testing. Required for refreshes of the
+            `certificate_file` to be performed via API calls.
 
         """
         as_url = urlparse(as_url)
@@ -73,6 +81,10 @@ class FahAdaptiveSamplingClient:
         #    self.key = self.create_key()
         # else:
         #    self.key = self.read_key(key_file)
+
+        self.certificate_file = certificate_file
+        self.key_file = key_file
+        self.csr_file = csr_file
 
         self.cert = (certificate_file, key_file)
         self.verify = verify
@@ -133,6 +145,13 @@ class FahAdaptiveSamplingClient:
         with open(csr_file, "wb") as f:
             f.write(csr.public_bytes(serialization.Encoding.PEM))
 
+    @staticmethod
+    def read_csr_pem(csr_file):
+        with open(csr_file, "r") as f:
+            pem = f.read()
+
+        return pem
+
     def _check_status(self, r):
         if r.status_code != 200:
             raise Exception("Request failed with %d: %s" % (r.status_code, r.text))
@@ -146,6 +165,11 @@ class FahAdaptiveSamplingClient:
     def _put(self, api_url, endpoint, data=None):
         url = urljoin(api_url, endpoint)
         r = requests.put(url, json=data, cert=self.cert, verify=self.verify)
+        self._check_status(r)
+
+    def _post(self, api_url, endpoint, data=None):
+        url = urljoin(api_url, endpoint)
+        r = requests.post(url, json=data, cert=self.cert, verify=self.verify)
         self._check_status(r)
 
     def _delete(self, api_url, endpoint):
@@ -180,6 +204,19 @@ class FahAdaptiveSamplingClient:
         r.close()
 
         return bytedata
+
+    def as_update_certificate(self):
+        as_csr = ASCSR(csr=self.read_csr_pem(self.csr_file))
+        certs = ASCertificate(
+            **self._post(
+            self.as_url,
+            "/api/auth/csr",
+            as_csr.dict(),
+        ))
+
+        # overwrite certificate file with new certificate contents
+        with open(self.certificate_file, 'w') as f:
+            f.write(certs.certificate)
 
     def as_get_ws(self) -> ASWorkServerData:
         """Get work server attributes from assignment server."""

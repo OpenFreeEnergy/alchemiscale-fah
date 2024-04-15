@@ -96,6 +96,13 @@ class FileData(FahAdaptiveSamplingModel):
     modified: datetime = Field(..., description="The file modification time.")
 
 
+class ASCSR(FahAdaptiveSamplingModel):
+    csr: str = Field(..., description="Certificate Signing Request in PEM format")
+
+class ASCertificate(FahAdaptiveSamplingModel):
+    certificate: str = Field(..., description="New client certificate in PEM format")
+    as_cert: str = Field(..., description="AS certificate in PEM format")
+
 class ASWorkServerData(FahAdaptiveSamplingModel):
     max_assign_rate: float = Field(
         ..., description="The maximum assigns/sec allowed for this WS."
