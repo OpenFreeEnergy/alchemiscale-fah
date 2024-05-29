@@ -4,7 +4,7 @@ from copy import copy
 import pytest
 import uvicorn
 
-from gufe import ChemicalSystem, Transformation, AlchemicalNetwork
+from gufe import ChemicalSystem, Transformation, AlchemicalNetwork, SmallMoleculeComponent, LigandAtomMapping
 from alchemiscale.tests.integration.utils import running_service
 from openfe_benchmarks import tyk2
 
@@ -56,7 +56,8 @@ def fah_adaptive_sampling_client(
     uvicorn_server,
 ):
     fahasc = client.FahAdaptiveSamplingClient(
-        ws_url="http://127.0.0.1:8000/",
+        as_url="http://127.0.0.1:8001/",
+        ws_url="http://127.0.0.1:8001/",
         verify=False,
     )
     yield fahasc
@@ -70,24 +71,38 @@ def generate_tyk2_solvent_network(protocol):
     solvent_network = []
     for mapping in tyk2s.ligand_network.edges:
 
+        # apply formal charges to avoid long charging times in test suite
+        ligand_A = mapping.componentA.to_openff()
+        ligand_A.assign_partial_charges('gasteiger')
+        ligand_A = SmallMoleculeComponent.from_openff(ligand_A, name=ligand_A.name)
+
+        ligand_B = mapping.componentB.to_openff()
+        ligand_B.assign_partial_charges('gasteiger')
+        ligand_B = SmallMoleculeComponent.from_openff(ligand_B, name=ligand_B.name)
+
+        mapping_ = LigandAtomMapping(componentA=ligand_A,
+                                     componentB=ligand_B,
+                                     componentA_to_componentB=mapping.componentA_to_componentB,
+                                     annotations=mapping.annotations)
+
         solvent_transformation = Transformation(
             stateA=ChemicalSystem(
                 components={
-                    "ligand": mapping.componentA,
+                    "ligand": ligand_A,
                     "solvent": tyk2s.solvent_component,
                 },
-                name=f"{mapping.componentA.name}_water",
+                name=f"{ligand_A.name}_water",
             ),
             stateB=ChemicalSystem(
                 components={
-                    "ligand": mapping.componentB,
+                    "ligand": ligand_B,
                     "solvent": tyk2s.solvent_component,
                 },
-                name=f"{mapping.componentB.name}_water",
+                name=f"{ligand_B.name}_water",
             ),
-            mapping={"ligand": mapping},
+            mapping={"ligand": mapping_},
             protocol=protocol,
-            name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_solvent",
+            name=f"{ligand_A.name}_to_{ligand_B.name}_solvent",
         )
 
         solvent_network.append(solvent_transformation)
@@ -95,33 +110,33 @@ def generate_tyk2_solvent_network(protocol):
     return AlchemicalNetwork(edges=solvent_network, name="tyk2_solvent")
 
 
-def generate_tyk2_complex_network(protocol):
-    tyk2s = tyk2.get_system()
-
-    complex_network = []
-    for mapping in tyk2s.ligand_network.edges:
-        complex_transformation = Transformation(
-            stateA=ChemicalSystem(
-                components={
-                    "protein": tyk2s.protein_component,
-                    "ligand": mapping.componentA,
-                    "solvent": tyk2s.solvent_component,
-                },
-                name=f"{mapping.componentA.name}_complex",
-            ),
-            stateB=ChemicalSystem(
-                components={
-                    "protein": tyk2s.protein_component,
-                    "ligand": mapping.componentB,
-                    "solvent": tyk2s.solvent_component,
-                },
-                name=f"{mapping.componentB.name}_complex",
-            ),
-            mapping={"ligand": mapping},
-            protocol=protocol,
-            name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_complex",
-        )
-
-        complex_network.append(complex_transformation)
-
-    return AlchemicalNetwork(edges=complex_network, name="tyk2_complex")
+#def generate_tyk2_complex_network(protocol):
+#    tyk2s = tyk2.get_system()
+#
+#    complex_network = []
+#    for mapping in tyk2s.ligand_network.edges:
+#        complex_transformation = Transformation(
+#            stateA=ChemicalSystem(
+#                components={
+#                    "protein": tyk2s.protein_component,
+#                    "ligand": mapping.componentA,
+#                    "solvent": tyk2s.solvent_component,
+#                },
+#                name=f"{mapping.componentA.name}_complex",
+#            ),
+#            stateB=ChemicalSystem(
+#                components={
+#                    "protein": tyk2s.protein_component,
+#                    "ligand": mapping.componentB,
+#                    "solvent": tyk2s.solvent_component,
+#                },
+#                name=f"{mapping.componentB.name}_complex",
+#            ),
+#            mapping={"ligand": mapping},
+#            protocol=protocol,
+#            name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_complex",
+#        )
+#
+#        complex_network.append(complex_transformation)
+#
+#    return AlchemicalNetwork(edges=complex_network, name="tyk2_complex")

@@ -29,10 +29,13 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
         True,
         description="Whether to verify SSL certificate presented by the FAH server.",
     )
-
-    index_file: Path = Field(
+    fah_cert_update_interval: Optional[int] = Field(
+        86400, 
+        description="Interval in seconds to update the certificate used to authenticate with FAH servers; set to `None` to disable automatic cert renewal.",
+    )
+    index_dir : Path = Field(
         ...,
-        description="Path to leveldb index file used by the service to track its state.",
+        description="Path to leveldb index dir used by the service to track its state.",
     )
     obj_store: Path = Field(
         ...,

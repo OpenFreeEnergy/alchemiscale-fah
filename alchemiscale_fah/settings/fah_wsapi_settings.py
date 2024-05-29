@@ -24,6 +24,7 @@ class WSAPISettings(FrozenSettings):
     WSAPI_SERVER_ID: int
 
     WSAPI_STATE_DIR: pathlib.Path
+    WSAPI_SECRETS_DIR: pathlib.Path
     WSAPI_INPUTS_DIR: pathlib.Path
     WSAPI_OUTPUTS_DIR: pathlib.Path
 

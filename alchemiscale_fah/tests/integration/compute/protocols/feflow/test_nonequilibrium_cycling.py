@@ -10,12 +10,11 @@ from alchemiscale.models import ScopedKey
 from gufe.tokenization import GufeKey
 from openff.units import unit
 
-from alchemiscale_fah.compute.models import ProjectData, JobData, FahProject
+from alchemiscale_fah.compute.models import ProjectData, FahProject
 from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
 from alchemiscale_fah.compute.service import execute_DAG
 from alchemiscale_fah.compute.index import FahComputeServiceIndex
 from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
-    FahNonEqulibriumCyclingSimulationUnit,
     FahNonEqulibriumCyclingProtocol,
 )
 
@@ -109,7 +108,8 @@ class TestFahNonEqulibriumCyclingProtocol:
             Path("./index/index_dir"), Path("./index/object_store")
         )
 
-        # execute DAG; "work server" will "finish" a simulation unit after a preset amount of time
+        # execute DAG; "work server" will "finish" a simulation unit after a
+        # preset amount of time
         pdr = await execute_DAG(
             protocoldag,
             shared_basedir=shared,

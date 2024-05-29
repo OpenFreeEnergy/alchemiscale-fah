@@ -5,6 +5,7 @@
 """
 
 import os
+from io import StringIO
 import socket
 from typing import Optional
 from urllib.parse import urljoin, urlparse
@@ -22,7 +23,6 @@ from cryptography.hazmat.primitives import hashes
 from .models import (
     ProjectData,
     ASCSR,
-    ASCertificate,
     ASWorkServerData,
     ASProjectData,
     JobData,
@@ -33,8 +33,6 @@ from .models import (
 
 class FahAdaptiveSamplingClient:
     """Client for interacting with a Folding@Home assignment and work server."""
-
-    # TODO: add automatic cert refreshes on requests based on remaining lifetime
 
     def __init__(
         self,
@@ -171,6 +169,7 @@ class FahAdaptiveSamplingClient:
         url = urljoin(api_url, endpoint)
         r = requests.post(url, json=data, cert=self.cert, verify=self.verify)
         self._check_status(r)
+        return r.content
 
     def _delete(self, api_url, endpoint):
         url = urljoin(api_url, endpoint)
@@ -207,17 +206,20 @@ class FahAdaptiveSamplingClient:
 
     def as_update_certificate(self):
         as_csr = ASCSR(csr=self.read_csr_pem(self.csr_file))
-        certs = ASCertificate(
-            **self._post(
+        content = self._post(
                 self.as_url,
                 "/api/auth/csr",
                 as_csr.dict(),
             )
-        )
 
-        # overwrite certificate file with new certificate contents
-        with open(self.certificate_file, "w") as f:
-            f.write(certs.certificate)
+        # overwrite certificate file with new certificate contents;
+        # do this by writing to temp file, then do atomic move
+        cert_file_tmp = Path(str(self.certificate_file.absolute()) + '.tmp')
+        with open(cert_file_tmp, "wb") as f:
+            f.write(content)
+
+        os.rename(cert_file_tmp, self.certificate_file)
+
 
     def as_get_ws(self) -> ASWorkServerData:
         """Get work server attributes from assignment server."""

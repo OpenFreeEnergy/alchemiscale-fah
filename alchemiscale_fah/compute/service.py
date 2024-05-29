@@ -7,6 +7,7 @@
 import os
 import asyncio
 import gc
+import json
 from typing import Union, Optional, List, Dict, Tuple
 from pathlib import Path
 from uuid import uuid4
@@ -16,7 +17,7 @@ import logging
 import shutil
 from concurrent.futures import ProcessPoolExecutor
 
-from gufe.tokenization import GufeKey
+from gufe.tokenization import GufeKey, JSON_HANDLER
 from gufe.protocols.protocoldag import (
     ProtocolDAG,
     ProtocolDAGResult,
@@ -33,12 +34,19 @@ from alchemiscale.compute.service import (
     InterruptableSleep,
     SleepInterrupted,
 )
+from alchemiscale.keyedchain import KeyedChain
 
 from .models import FahProject
 from .settings import FahAsynchronousComputeServiceSettings
 from .client import FahAdaptiveSamplingClient
 from .index import FahComputeServiceIndex
 from ..protocols.protocolunit import FahSimulationUnit, FahContext
+
+# NOTE: if we don't do this, it appears that our RDKit mols won't keep their
+# properties on being pickled with a ProcessPoolExecutor, despite our efforts to avoid this;
+# this is important for retaining partial charges
+from rdkit import Chem
+Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
 
 
 class FahAsynchronousComputeService(SynchronousComputeService):
@@ -66,7 +74,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         self.fah_project_ids = self.settings.fah_project_ids
 
-        self.index_file = Path(self.settings.index_file).absolute()
+        self.index_dir = Path(self.settings.index_dir).absolute()
         self.obj_store = Path(self.settings.obj_store).absolute()
 
         # get PROJECT data from metadata files in each PROJECT
@@ -86,6 +94,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             key_file=self.settings.fah_key_file,
             verify=self.settings.fah_client_verify,
         )
+        self.fah_cert_update_interval = settings.fah_cert_update_interval
 
         if self.settings.scopes is None:
             self.scopes = [Scope()]
@@ -128,6 +137,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self.logger = logging.LoggerAdapter(logger, extra)
 
         self.heartbeat_thread = None
+        self.fah_cert_update_thread = None
 
     @classmethod
     def update_index(settings: FahAsynchronousComputeServiceSettings):
@@ -142,6 +152,14 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         index.db.close()
 
+    def update_fah_cert(self):
+        """Start up the FAH cert update, sleeping for `self.fah_cert_update_interval`"""
+        while True:
+            if self._stop:
+                break
+            self.fah_client.as_update_certificate()
+            time.sleep(self.fah_cert_update_interval)
+
     def _refresh_heartbeat_thread(self):
         if self.heartbeat_thread is None:
             self.heartbeat_thread = threading.Thread(target=self.heartbeat, daemon=True)
@@ -151,6 +169,16 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         elif not self.heartbeat_thread.is_alive():
             self.heartbeat_thread = threading.Thread(target=self.heartbeat, daemon=True)
             self.heartbeat_thread.start()
+
+    def _refresh_cert_update_thread(self):
+        if self.fah_cert_update_thread is None:
+            self.fah_cert_update_thread = threading.Thread(target=self.update_fah_cert, daemon=True)
+            self.fah_cert_update_thread.start()
+
+        # check that heartbeat is still alive; if not, resurrect it
+        elif not self.fah_cert_update_thread.is_alive():
+            self.fah_cert_update_thread = threading.Thread(target=self.update_fah_cert, daemon=True)
+            self.fah_cert_update_thread.start()
 
     async def async_execute(self, task: ScopedKey) -> ScopedKey:
         """Executes given Task.
@@ -245,8 +273,11 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # TODO: only want to claim tasks that correspond to FAH protocols
         # claim tasks from the compute API
         self.logger.info("Claiming tasks")
-        task_sks: List[ScopedKey] = self.client.claim_tasks_with_protocols(
-            self.claim_limit, self.settings.protocols
+        task_sks: List[ScopedKey] = self.client.claim_tasks(
+            scopes=self.scopes,
+            compute_service_id=ComputeServiceID,
+            count=self.claim_limit,
+            protocols=self.settings.protocols
         )
 
         # if no tasks claimed, sleep and return
@@ -276,6 +307,10 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             # refresh heartbeat in case it died
             self._refresh_heartbeat_thread()
 
+            # if cert update thread died, restart it
+            if self.fah_cert_update_interval is not None:
+                self._refresh_cert_update_thread()
+
             done, pending = await asyncio.wait(
                 async_tasks, return_when=asyncio.FIRST_COMPLETED
             )
@@ -293,7 +328,13 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
             # attempt to claim a new task, add to execution
             self.logger.info("Attempting to claim an additional task")
-            task_sks: List[ScopedKey] = self.client.claim_tasks()
+            task_sks: List[ScopedKey] = self.client.claim_tasks(
+                    scopes=self.scopes,
+                    compute_service_id=ComputeServiceID,
+                    count=self.claim_limit,
+                    protocols=self.settings.protocols
+                    )
+
             if all([task_sk is None for task_sk in task_sks]):
                 self.logger.info("No new task claimed")
 
@@ -330,6 +371,10 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # start up heartbeat thread
         self._refresh_heartbeat_thread()
 
+        # set up automatic cert refreshes, if desired
+        if self.fah_cert_update_interval is not None:
+            self._refresh_cert_update_thread()
+
         # stop conditions will use these
         self._tasks_counter = 0
         self._start_time = time.time()
@@ -338,7 +383,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self._pool = ProcessPoolExecutor()
 
         # open index
-        self.index = FahComputeServiceIndex(self.index_file, self.obj_store)
+        self.index = FahComputeServiceIndex(self.index_dir, self.obj_store)
 
         # update index with PROJECT information
         for p in self.fah_projects:
@@ -350,6 +395,10 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             while not self._stop:
                 # refresh heartbeat in case it died
                 self._refresh_heartbeat_thread()
+        
+                # if cert update thread died, restart it
+                if self.fah_cert_update_interval is not None:
+                    self._refresh_cert_update_thread()
 
                 # perform continuous cycle until available tasks exhausted
                 asyncio.run(self.async_cycle(max_tasks, max_time))
@@ -377,7 +426,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
 
 def execute_unit(unit, params):
-    return unit.execute(**params)
+    return KeyedChain(json.loads(unit, cls=JSON_HANDLER.decoder)).to_gufe().execute(**params)
 
 
 async def execute_DAG(
@@ -527,7 +576,8 @@ async def execute_DAG(
                     # would require restructuring this whole method around that
                     # approach, in particular handling retries
                     result = await loop.run_in_executor(
-                        pool, execute_unit, unit, params
+                        pool, execute_unit,
+                        json.dumps(KeyedChain.gufe_to_keyed_chain_rep(unit), cls=JSON_HANDLER.encoder), params
                     )
 
                 all_results.append(result)
