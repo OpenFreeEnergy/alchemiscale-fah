@@ -4,7 +4,13 @@ from copy import copy
 import pytest
 import uvicorn
 
-from gufe import ChemicalSystem, Transformation, AlchemicalNetwork, SmallMoleculeComponent, LigandAtomMapping
+from gufe import (
+    ChemicalSystem,
+    Transformation,
+    AlchemicalNetwork,
+    SmallMoleculeComponent,
+    LigandAtomMapping,
+)
 from alchemiscale.tests.integration.utils import running_service
 from openfe_benchmarks import tyk2
 
@@ -73,17 +79,19 @@ def generate_tyk2_solvent_network(protocol):
 
         # apply formal charges to avoid long charging times in test suite
         ligand_A = mapping.componentA.to_openff()
-        ligand_A.assign_partial_charges('gasteiger')
+        ligand_A.assign_partial_charges("gasteiger")
         ligand_A = SmallMoleculeComponent.from_openff(ligand_A, name=ligand_A.name)
 
         ligand_B = mapping.componentB.to_openff()
-        ligand_B.assign_partial_charges('gasteiger')
+        ligand_B.assign_partial_charges("gasteiger")
         ligand_B = SmallMoleculeComponent.from_openff(ligand_B, name=ligand_B.name)
 
-        mapping_ = LigandAtomMapping(componentA=ligand_A,
-                                     componentB=ligand_B,
-                                     componentA_to_componentB=mapping.componentA_to_componentB,
-                                     annotations=mapping.annotations)
+        mapping_ = LigandAtomMapping(
+            componentA=ligand_A,
+            componentB=ligand_B,
+            componentA_to_componentB=mapping.componentA_to_componentB,
+            annotations=mapping.annotations,
+        )
 
         solvent_transformation = Transformation(
             stateA=ChemicalSystem(
@@ -110,7 +118,7 @@ def generate_tyk2_solvent_network(protocol):
     return AlchemicalNetwork(edges=solvent_network, name="tyk2_solvent")
 
 
-#def generate_tyk2_complex_network(protocol):
+# def generate_tyk2_complex_network(protocol):
 #    tyk2s = tyk2.get_system()
 #
 #    complex_network = []

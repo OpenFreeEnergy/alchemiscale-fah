@@ -132,7 +132,7 @@ def get_wsstatedb_depends(
 
 def get_tls_private_key_depends(
     settings: WSAPISettings = Depends(get_wsapi_settings),
-    ) -> Path:
+) -> Path:
 
     # create a private key for this server
     key = rsa.generate_private_key(
@@ -142,13 +142,17 @@ def get_tls_private_key_depends(
 
     secrets_dir = settings.WSAPI_SECRETS_DIR.mkdir(parents=True, exist_ok=True)
     private_key_path = secrets_dir / "key.pem"
-    
+
     with open(private_key_path, "wb") as f:
-        f.write(key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.BestAvailableEncryption(b"passphrase"),
-        ))
+        f.write(
+            key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.BestAvailableEncryption(
+                    b"passphrase"
+                ),
+            )
+        )
 
     return private_key_path
 
@@ -191,7 +195,7 @@ def _reset(
 @app.post("/api/auth/csr")
 def as_update_certificate(
     private_key_file: Path = Depends(get_tls_private_key_depends),
-    ):
+):
     # create self-signed cert from private key
     with open(private_key_file, "rb") as f:
         pem = f.read()
@@ -199,35 +203,36 @@ def as_update_certificate(
     key = serialization.load_pem_private_key(pem, None, default_backend())
 
     # subject and issuer are always the same.
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "California"),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, "Davis"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "OMSF"),
-        x509.NameAttribute(NameOID.COMMON_NAME, "omsf.io"),
-    
-    ])
-    
-    cert = x509.CertificateBuilder().subject_name(
-        subject
-    ).issuer_name(
-        issuer
-    ).public_key(
-        key.public_key()
-    ).serial_number(
-        x509.random_serial_number()
-    ).not_valid_before(
-        datetime.datetime.now(datetime.timezone.utc)
-    ).not_valid_after(
-        # Our certificate will be valid for 10 days
-        datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=10)
-    ).add_extension(
-        x509.SubjectAlternativeName([x509.DNSName("localhost")]),
-        critical=False,
-    
-    # Sign our certificate with our private key
-    ).sign(key, hashes.SHA256())
-    
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "California"),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, "Davis"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "OMSF"),
+            x509.NameAttribute(NameOID.COMMON_NAME, "omsf.io"),
+        ]
+    )
+
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
+        .not_valid_after(
+            # Our certificate will be valid for 10 days
+            datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(days=10)
+        )
+        .add_extension(
+            x509.SubjectAlternativeName([x509.DNSName("localhost")]),
+            critical=False,
+            # Sign our certificate with our private key
+        )
+        .sign(key, hashes.SHA256())
+    )
+
     return cert.public_bytes(serialization.Encoding.PEM)
 
 

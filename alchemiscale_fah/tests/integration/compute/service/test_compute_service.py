@@ -11,8 +11,13 @@ import pytest
 
 from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
 from alchemiscale_fah.compute.models import ProjectData, JobData, FahProject
-from alchemiscale_fah.compute.service import FahAsynchronousComputeService, FahAsynchronousComputeServiceSettings
-from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import FahNonEqulibriumCyclingProtocol
+from alchemiscale_fah.compute.service import (
+    FahAsynchronousComputeService,
+    FahAsynchronousComputeServiceSettings,
+)
+from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
+    FahNonEqulibriumCyclingProtocol,
+)
 
 
 @pytest.fixture(scope="function")
@@ -31,6 +36,7 @@ def fah_client_preloaded(fah_adaptive_sampling_client):
 
     return client
 
+
 class TestFahAsynchronousComputeService:
 
     @pytest.fixture
@@ -38,32 +44,35 @@ class TestFahAsynchronousComputeService:
         fahc: FahAdaptiveSamplingClient = fah_client_preloaded
         with tmpdir.as_cwd():
             return FahAsynchronousComputeService(
-                    FahAsynchronousComputeServiceSettings(
-                        api_url=compute_client.api_url,
-                        identifier=compute_client.identifier,
-                        key=compute_client.key,
-                        name="test_compute_service",
-                        shared_basedir=Path("shared").absolute(),
-                        scratch_basedir=Path("scratch").absolute(),
-                        heartbeat_interval=1,
-                        sleep_interval=1,
-                        protocols=[FahNonEqulibriumCyclingProtocol.__qualname__],
-                        fah_as_url=fahc.as_url,
-                        fah_ws_url=fahc.ws_url,
-                        fah_certificate_file=fahc.certificate_file,
-                        fah_key_file=fahc.key_file,
-                        fah_client_verify=False,
-                        index_dir=Path('./index/index_dir').absolute(),
-                        obj_store=Path('./index/object_store').absolute(),
-                        fah_cert_update_interval=2
-            ))
+                FahAsynchronousComputeServiceSettings(
+                    api_url=compute_client.api_url,
+                    identifier=compute_client.identifier,
+                    key=compute_client.key,
+                    name="test_compute_service",
+                    shared_basedir=Path("shared").absolute(),
+                    scratch_basedir=Path("scratch").absolute(),
+                    heartbeat_interval=1,
+                    sleep_interval=1,
+                    protocols=[FahNonEqulibriumCyclingProtocol.__qualname__],
+                    fah_as_url=fahc.as_url,
+                    fah_ws_url=fahc.ws_url,
+                    fah_certificate_file=fahc.certificate_file,
+                    fah_key_file=fahc.key_file,
+                    fah_client_verify=False,
+                    index_dir=Path("./index/index_dir").absolute(),
+                    obj_store=Path("./index/object_store").absolute(),
+                    fah_cert_update_interval=2,
+                )
+            )
 
-    async def test_async_execute(self,
-                                 n4js_preloaded,
-                                 s3os_server_fresh,
-                                 service,
-                                 network_tyk2_solvent,
-                                 scope_test):
+    async def test_async_execute(
+        self,
+        n4js_preloaded,
+        s3os_server_fresh,
+        service,
+        network_tyk2_solvent,
+        scope_test,
+    ):
 
         # get a Task to execute
         n4js = n4js_preloaded

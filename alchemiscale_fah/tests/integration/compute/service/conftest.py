@@ -246,6 +246,7 @@ def compute_service_id():
 
 # compute API
 
+
 @fixture(scope="module")
 def compute_api(s3os_server):
     def get_s3os_override():
@@ -301,6 +302,7 @@ def compute_client(
 
 
 ## preloaded alchemiscale
+
 
 @fixture(scope="module")
 def network_tyk2_solvent():

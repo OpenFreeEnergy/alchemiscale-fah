@@ -46,6 +46,7 @@ from ..protocols.protocolunit import FahSimulationUnit, FahContext
 # properties on being pickled with a ProcessPoolExecutor, despite our efforts to avoid this;
 # this is important for retaining partial charges
 from rdkit import Chem
+
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.AllProps)
 
 
@@ -172,12 +173,16 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
     def _refresh_cert_update_thread(self):
         if self.fah_cert_update_thread is None:
-            self.fah_cert_update_thread = threading.Thread(target=self.update_fah_cert, daemon=True)
+            self.fah_cert_update_thread = threading.Thread(
+                target=self.update_fah_cert, daemon=True
+            )
             self.fah_cert_update_thread.start()
 
         # check that heartbeat is still alive; if not, resurrect it
         elif not self.fah_cert_update_thread.is_alive():
-            self.fah_cert_update_thread = threading.Thread(target=self.update_fah_cert, daemon=True)
+            self.fah_cert_update_thread = threading.Thread(
+                target=self.update_fah_cert, daemon=True
+            )
             self.fah_cert_update_thread.start()
 
     async def async_execute(self, task: ScopedKey) -> ScopedKey:
@@ -277,7 +282,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             scopes=self.scopes,
             compute_service_id=ComputeServiceID,
             count=self.claim_limit,
-            protocols=self.settings.protocols
+            protocols=self.settings.protocols,
         )
 
         # if no tasks claimed, sleep and return
@@ -329,11 +334,11 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             # attempt to claim a new task, add to execution
             self.logger.info("Attempting to claim an additional task")
             task_sks: List[ScopedKey] = self.client.claim_tasks(
-                    scopes=self.scopes,
-                    compute_service_id=ComputeServiceID,
-                    count=self.claim_limit,
-                    protocols=self.settings.protocols
-                    )
+                scopes=self.scopes,
+                compute_service_id=ComputeServiceID,
+                count=self.claim_limit,
+                protocols=self.settings.protocols,
+            )
 
             if all([task_sk is None for task_sk in task_sks]):
                 self.logger.info("No new task claimed")
@@ -395,7 +400,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             while not self._stop:
                 # refresh heartbeat in case it died
                 self._refresh_heartbeat_thread()
-        
+
                 # if cert update thread died, restart it
                 if self.fah_cert_update_interval is not None:
                     self._refresh_cert_update_thread()
@@ -426,7 +431,11 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
 
 def execute_unit(unit, params):
-    return KeyedChain(json.loads(unit, cls=JSON_HANDLER.decoder)).to_gufe().execute(**params)
+    return (
+        KeyedChain(json.loads(unit, cls=JSON_HANDLER.decoder))
+        .to_gufe()
+        .execute(**params)
+    )
 
 
 async def execute_DAG(
@@ -576,8 +585,13 @@ async def execute_DAG(
                     # would require restructuring this whole method around that
                     # approach, in particular handling retries
                     result = await loop.run_in_executor(
-                        pool, execute_unit,
-                        json.dumps(KeyedChain.gufe_to_keyed_chain_rep(unit), cls=JSON_HANDLER.encoder), params
+                        pool,
+                        execute_unit,
+                        json.dumps(
+                            KeyedChain.gufe_to_keyed_chain_rep(unit),
+                            cls=JSON_HANDLER.encoder,
+                        ),
+                        params,
                     )
 
                 all_results.append(result)

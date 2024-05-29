@@ -207,19 +207,18 @@ class FahAdaptiveSamplingClient:
     def as_update_certificate(self):
         as_csr = ASCSR(csr=self.read_csr_pem(self.csr_file))
         content = self._post(
-                self.as_url,
-                "/api/auth/csr",
-                as_csr.dict(),
-            )
+            self.as_url,
+            "/api/auth/csr",
+            as_csr.dict(),
+        )
 
         # overwrite certificate file with new certificate contents;
         # do this by writing to temp file, then do atomic move
-        cert_file_tmp = Path(str(self.certificate_file.absolute()) + '.tmp')
+        cert_file_tmp = Path(str(self.certificate_file.absolute()) + ".tmp")
         with open(cert_file_tmp, "wb") as f:
             f.write(content)
 
         os.rename(cert_file_tmp, self.certificate_file)
-
 
     def as_get_ws(self) -> ASWorkServerData:
         """Get work server attributes from assignment server."""
