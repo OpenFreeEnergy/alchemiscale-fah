@@ -43,5 +43,5 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
     )
     fah_project_ids: List[int] = Field(
         ...,
-        description="List of FAH PROJECT ids that this compute service should use for executing compute."
+        description="List of FAH PROJECT ids that this compute service should use for executing compute.",
     )

@@ -120,7 +120,9 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         nonbonded settings in use.
 
         """
-        nonbonded_settings = NonbondedSettings[settings.system_settings.nonbonded_method]
+        nonbonded_settings = NonbondedSettings[
+            settings.system_settings.nonbonded_method
+        ]
 
         # get only PROJECTs with matching nonbonded settings
         eligible_projects = [

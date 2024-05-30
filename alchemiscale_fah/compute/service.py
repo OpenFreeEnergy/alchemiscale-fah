@@ -436,6 +436,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         )
         self._pool.shutdown(cancel_futures=True)
 
+
 def execute_unit(unit, params):
     return (
         KeyedChain(json.loads(unit, cls=JSON_HANDLER.decoder))

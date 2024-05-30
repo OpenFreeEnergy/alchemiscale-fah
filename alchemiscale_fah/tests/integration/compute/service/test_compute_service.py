@@ -26,7 +26,7 @@ def fah_client_preloaded(fah_adaptive_sampling_client):
     client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
     project_id = 90001
     n_atoms = 10000
-    nonbonded_settings = NonbondedSettings['PME']
+    nonbonded_settings = NonbondedSettings["PME"]
 
     project_data = ProjectData(
         core_id=0x23,
@@ -72,7 +72,7 @@ class TestFahAsynchronousComputeService:
                     fah_cert_update_interval=None,
                     index_dir=Path("./index/index_dir").absolute(),
                     obj_store=Path("./index/object_store").absolute(),
-                    fah_project_ids=[90001]
+                    fah_project_ids=[90001],
                 )
             )
 
@@ -107,8 +107,9 @@ class TestFahAsynchronousComputeService:
         assert objs[0].key == os.path.join(s3os.prefix, protocoldagresultref.location)
 
         # check protocoldagresult
-        pdr = s3os.pull_protocoldagresult(location=protocoldagresultref.location,
-                                          ok=protocoldagresultref.ok)
+        pdr = s3os.pull_protocoldagresult(
+            location=protocoldagresultref.location, ok=protocoldagresultref.ok
+        )
 
         assert pdr.ok()
 
@@ -136,8 +137,10 @@ class TestFahAsynchronousComputeService:
         assert protocoldagresultref.records[0]["pdr"]["ok"] is True
 
         # check protocoldagresult
-        pdr = s3os.pull_protocoldagresult(location=protocoldagresultref.records[0]['pdr']['location'],
-                                          ok=protocoldagresultref.records[0]['pdr']['ok'])
+        pdr = s3os.pull_protocoldagresult(
+            location=protocoldagresultref.records[0]["pdr"]["location"],
+            ok=protocoldagresultref.records[0]["pdr"]["ok"],
+        )
 
         assert pdr.ok()
 
