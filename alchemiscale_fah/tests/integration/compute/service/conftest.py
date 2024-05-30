@@ -270,7 +270,7 @@ def run_server(fastapi_app, settings):
 
 
 @fixture(scope="module")
-def uvicorn_server(compute_api):
+def compute_uvicorn_server(compute_api):
     settings = get_compute_settings_override()
     with running_service(
         run_server,
@@ -287,7 +287,7 @@ def compute_identity():
 
 @fixture(scope="module")
 def compute_client(
-    uvicorn_server,
+    compute_uvicorn_server,
     compute_identity,
     single_scoped_credentialed_compute,
     compute_service_id,

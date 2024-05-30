@@ -120,7 +120,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         nonbonded settings in use.
 
         """
-        nonbonded_settings = settings.system_settings.nonbonded_method
+        nonbonded_settings = NonbondedSettings[settings.system_settings.nonbonded_method]
 
         # get only PROJECTs with matching nonbonded settings
         eligible_projects = [
@@ -131,7 +131,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # get efforts for each project, select project with closest effort to
         # this Transformation
-        effort_func = NONBONDED_EFFORT[NonbondedSettings[nonbonded_settings]]
+        effort_func = NONBONDED_EFFORT[nonbonded_settings]
         effort = effort_func(n_atoms)
 
         project_efforts = np.array(

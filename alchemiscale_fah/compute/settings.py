@@ -17,13 +17,13 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
         ...,
         description="URL of the FAH work server to use.",
     )
-    fah_certificate_file: Path = Field(
-        ...,
-        description="Path to the TLS certificate to use for authentication with FAH servers",
+    fah_certificate_file: Optional[Path] = Field(
+        None,
+        description="Path to the TLS certificate to use for authentication with FAH servers; required for real deployments.",
     )
-    fah_key_file: Path = Field(
-        ...,
-        description="Path to the RSA private key used for TLS communication with FAH servers.",
+    fah_key_file: Optional[Path] = Field(
+        None,
+        description="Path to the RSA private key used for TLS communication with FAH servers; required for real deployments.",
     )
     fah_client_verify: bool = Field(
         True,
@@ -40,4 +40,8 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
     obj_store: Path = Field(
         ...,
         description="Path to object store directory for larger objects, such as ProtocolDAGs.",
+    )
+    fah_project_ids: List[int] = Field(
+        ...,
+        description="List of FAH PROJECT ids that this compute service should use for executing compute."
     )

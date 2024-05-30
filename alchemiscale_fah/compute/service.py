@@ -78,6 +78,14 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self.index_dir = Path(self.settings.index_dir).absolute()
         self.obj_store = Path(self.settings.obj_store).absolute()
 
+        self.fah_client = FahAdaptiveSamplingClient(
+            as_url=self.settings.fah_as_url,
+            ws_url=self.settings.fah_ws_url,
+            certificate_file=self.settings.fah_certificate_file,
+            key_file=self.settings.fah_key_file,
+            verify=self.settings.fah_client_verify,
+        )
+
         # get PROJECT data from metadata files in each PROJECT
         self.fah_projects = [
             FahProject.parse_raw(
@@ -88,13 +96,6 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             for p in self.fah_project_ids
         ]
 
-        self.fah_client = FahAdaptiveSamplingClient(
-            as_url=self.settings.fah_as_url,
-            ws_url=self.settings.fah_ws_url,
-            certificate_file=self.settings.fah_certificate_file,
-            key_file=self.settings.fah_key_file,
-            verify=self.settings.fah_client_verify,
-        )
         self.fah_cert_update_interval = settings.fah_cert_update_interval
 
         if self.settings.scopes is None:
@@ -280,7 +281,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self.logger.info("Claiming tasks")
         task_sks: List[ScopedKey] = self.client.claim_tasks(
             scopes=self.scopes,
-            compute_service_id=ComputeServiceID,
+            compute_service_id=self.compute_service_id,
             count=self.claim_limit,
             protocols=self.settings.protocols,
         )
@@ -335,7 +336,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             self.logger.info("Attempting to claim an additional task")
             task_sks: List[ScopedKey] = self.client.claim_tasks(
                 scopes=self.scopes,
-                compute_service_id=ComputeServiceID,
+                compute_service_id=self.compute_service_id,
                 count=self.claim_limit,
                 protocols=self.settings.protocols,
             )
@@ -366,6 +367,32 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             If `None`, the service will have no time limit.
 
         """
+        self.cycle_init()
+
+        # TODO: add running count of successes/failures, log to output
+        try:
+            self.logger.info("Starting main loop")
+            while not self._stop:
+                # refresh heartbeat in case it died
+                self._refresh_heartbeat_thread()
+
+                # if cert update thread died, restart it
+                if self.fah_cert_update_interval is not None:
+                    self._refresh_cert_update_thread()
+
+                # perform continuous cycle until available tasks exhausted
+                asyncio.run(self.async_cycle(max_tasks, max_time))
+
+                # force a garbage collection to avoid consuming too much memory
+                gc.collect()
+        except KeyboardInterrupt:
+            self.logger.info("Caught SIGINT/Keyboard interrupt.")
+        except SleepInterrupted:
+            self.logger.info("Service stopping.")
+        finally:
+            self.cycle_terminate()
+
+    def cycle_init(self):
         # add ComputeServiceRegistration
         self.logger.info("Starting up service '%s'", self.name)
         self._register()
@@ -394,41 +421,20 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         for p in self.fah_projects:
             self.index.set_project(p.project_id, p)
 
-        # TODO: add running count of successes/failures, log to output
-        try:
-            self.logger.info("Starting main loop")
-            while not self._stop:
-                # refresh heartbeat in case it died
-                self._refresh_heartbeat_thread()
+    def cycle_terminate(self):
+        # setting this ensures heartbeat also stops
+        self._stop = True
+        # remove ComputeServiceRegistration, drop all claims
+        self._deregister()
 
-                # if cert update thread died, restart it
-                if self.fah_cert_update_interval is not None:
-                    self._refresh_cert_update_thread()
+        # close index
+        self.index.db.close()
 
-                # perform continuous cycle until available tasks exhausted
-                asyncio.run(self.async_cycle(max_tasks, max_time))
-
-                # force a garbage collection to avoid consuming too much memory
-                gc.collect()
-        except KeyboardInterrupt:
-            self.logger.info("Caught SIGINT/Keyboard interrupt.")
-        except SleepInterrupted:
-            self.logger.info("Service stopping.")
-        finally:
-            # setting this ensures heartbeat also stops
-            self._stop = True
-            # remove ComputeServiceRegistration, drop all claims
-            self._deregister()
-
-            # close index
-            self.index.db.close()
-
-            self.logger.info(
-                "Deregistered service with registration '%s'",
-                str(self.compute_service_id),
-            )
-            self._pool.shutdown(cancel_futures=True)
-
+        self.logger.info(
+            "Deregistered service with registration '%s'",
+            str(self.compute_service_id),
+        )
+        self._pool.shutdown(cancel_futures=True)
 
 def execute_unit(unit, params):
     return (

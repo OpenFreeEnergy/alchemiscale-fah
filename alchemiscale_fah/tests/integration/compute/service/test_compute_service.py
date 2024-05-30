@@ -15,6 +15,7 @@ from alchemiscale_fah.compute.service import (
     FahAsynchronousComputeService,
     FahAsynchronousComputeServiceSettings,
 )
+from alchemiscale_fah.utils import NonbondedSettings
 from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
     FahNonEqulibriumCyclingProtocol,
 )
@@ -24,15 +25,24 @@ from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
 def fah_client_preloaded(fah_adaptive_sampling_client):
     client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
     project_id = 90001
+    n_atoms = 10000
+    nonbonded_settings = NonbondedSettings['PME']
 
     project_data = ProjectData(
         core_id=0x23,
         contact="lol@no.int",
-        atoms=10000,
+        atoms=n_atoms,
         credit=5000,
     )
 
     client.create_project(project_id, project_data)
+
+    fah_project = FahProject(
+        project_id=project_id, n_atoms=n_atoms, nonbonded_settings=nonbonded_settings
+    )
+    client.create_project_file_from_bytes(
+        project_id, fah_project.json().encode("utf-8"), "alchemiscale-project.txt"
+    )
 
     return client
 
@@ -59,9 +69,10 @@ class TestFahAsynchronousComputeService:
                     fah_certificate_file=fahc.certificate_file,
                     fah_key_file=fahc.key_file,
                     fah_client_verify=False,
+                    fah_cert_update_interval=None,
                     index_dir=Path("./index/index_dir").absolute(),
                     obj_store=Path("./index/object_store").absolute(),
-                    fah_cert_update_interval=2,
+                    fah_project_ids=[90001]
                 )
             )
 
@@ -82,8 +93,12 @@ class TestFahAsynchronousComputeService:
 
         task_sks = n4js.get_taskhub_tasks(tq_sk)
 
+        service.cycle_init()
+
         # try to execute this Task
         task_sk, protocoldagresultref_sk = await service.async_execute(task_sks[0])
+
+        service.cycle_terminate()
 
         # examine object metadata
         protocoldagresultref = n4js.get_gufe(protocoldagresultref_sk)
@@ -91,11 +106,15 @@ class TestFahAsynchronousComputeService:
         assert len(objs) == 1
         assert objs[0].key == os.path.join(s3os.prefix, protocoldagresultref.location)
 
+        # check protocoldagresult
+        pdr = s3os.pull_protocoldagresult(location=protocoldagresultref.location,
+                                          ok=protocoldagresultref.ok)
+
+        assert pdr.ok()
+
     async def test_async_cycle(self, n4js_preloaded, s3os_server_fresh, service):
         n4js = n4js_preloaded
         s3os = s3os_server_fresh
-
-        service._register()
 
         q = """
         match (pdr:ProtocolDAGResultRef)
@@ -106,12 +125,21 @@ class TestFahAsynchronousComputeService:
         protocoldagresultref = n4js.execute_query(q)
         assert not protocoldagresultref.records
 
+        service.cycle_init()
         await service.async_cycle()
+        service.cycle_terminate()
 
         # postconditions
         protocoldagresultref = n4js.execute_query(q)
+
         assert protocoldagresultref.records
         assert protocoldagresultref.records[0]["pdr"]["ok"] is True
+
+        # check protocoldagresult
+        pdr = s3os.pull_protocoldagresult(location=protocoldagresultref.records[0]['pdr']['location'],
+                                          ok=protocoldagresultref.records[0]['pdr']['ok'])
+
+        assert pdr.ok()
 
         q = """
         match (t:Task {status: 'complete'})

@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, validator
 
 from alchemiscale.models import ScopedKey
+from ..utils import NonbondedSettings
 
 
 # FahAdaptiveSamplingClient models
@@ -125,7 +126,7 @@ class ASProjectData(FahAdaptiveSamplingModel):
 class FahProject(BaseModel):
     project_id: str
     n_atoms: int
-    nonbonded_settings: str
+    nonbonded_settings: NonbondedSettings
 
 
 class FahRun(BaseModel):
