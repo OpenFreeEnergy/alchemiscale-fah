@@ -204,7 +204,8 @@ def fah_asynchronous(config_file):
         ]
 
     service = FahAsynchronousComputeService(
-            FahAsynchronousComputeServiceSettings(**params_init))
+        FahAsynchronousComputeServiceSettings(**params_init)
+    )
 
     # add signal handling
     for signame in {"SIGHUP", "SIGINT", "SIGTERM"}:
