@@ -5,6 +5,8 @@
 """
 
 import click
+import signal
+import yaml
 
 
 @click.group()
@@ -179,11 +181,41 @@ def compute(): ...
     name="fah-asynchronous",
     help="Start up a FahAsynchronousComputeService",
 )
-def fah_asynchronous(): ...
-
-
-@compute.command(
-    name="initialize-state",
-    help="Initialize statefile for FahAsynchronousComputeService",
+@click.option(
+    "--config-file",
+    "-c",
+    type=click.File(),
+    help="YAML-based configuration file giving the settings for this service",
+    required=True,
 )
-def initialize_state(): ...
+def fah_asynchronous(config_file):
+    from alchemiscale.models import Scope
+    from alchemiscale_fah.compute.service import FahAsynchronousComputeService
+    from alchemiscale_fah.compute.settings import FahAsynchronousComputeServiceSettings
+
+    params = yaml.safe_load(config_file)
+
+    params_init = params.get("init", {})
+    params_start = params.get("start", {})
+
+    if "scopes" in params_init:
+        params_init["scopes"] = [
+            Scope.from_str(scope) for scope in params_init["scopes"]
+        ]
+
+    service = FahAsynchronousComputeService(
+            FahAsynchronousComputeServiceSettings(**params_init))
+
+    # add signal handling
+    for signame in {"SIGHUP", "SIGINT", "SIGTERM"}:
+
+        def stop(*args, **kwargs):
+            service.stop()
+            raise KeyboardInterrupt()
+
+        signal.signal(getattr(signal, signame), stop)
+
+    try:
+        service.start(**params_start)
+    except KeyboardInterrupt:
+        pass

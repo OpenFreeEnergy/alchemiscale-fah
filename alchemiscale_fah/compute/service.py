@@ -141,19 +141,6 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self.heartbeat_thread = None
         self.fah_cert_update_thread = None
 
-    @classmethod
-    def update_index(settings: FahAsynchronousComputeServiceSettings):
-        # TODO: need to store some kind of state allowing compute service to go
-        # down and come back up, resuming activity if it picks up a task it
-        # was working on previously
-
-        # open index
-        index = FahComputeServiceIndex(settings.index_file, settings.obj_store)
-
-        ...
-
-        index.db.close()
-
     def update_fah_cert(self):
         """Start up the FAH cert update, sleeping for `self.fah_cert_update_interval`"""
         while True:
