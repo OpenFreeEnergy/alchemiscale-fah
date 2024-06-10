@@ -2,6 +2,7 @@ from enum import Enum, auto
 from typing import Optional
 from ipaddress import IPv4Address
 from datetime import datetime
+from enum import Enum
 
 from pydantic import BaseModel, Field, validator
 
@@ -121,12 +122,17 @@ class ASProjectData(FahAdaptiveSamplingModel):
 
 # FahAsynchronousComputeService models
 
+class FahCoreType(Enum):
+    openmm = "openmm"
+    gromacs = "gromacs"
 
-# TODO: documentation and enum for nonbonded_settings
+
+# TODO: documentation
 class FahProject(BaseModel):
     project_id: str
     n_atoms: int
     nonbonded_settings: NonbondedSettings
+    core_type: FahCoreType
 
 
 class FahRun(BaseModel):

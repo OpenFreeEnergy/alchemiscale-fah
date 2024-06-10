@@ -105,7 +105,7 @@ init:
   # Path to object store directory for larger objects, such as ProtocolDAGs.
   obj_store: "./path/to/object-store"
 
-  # List of FAH PROJECT ids that this compute service should use for executing compute.
+  # List of FAH PROJECT (integer) ids that this compute service should use for executing compute.
   fah_project_ids: []
 
 # options for service execution

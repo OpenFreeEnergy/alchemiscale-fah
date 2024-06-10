@@ -74,6 +74,13 @@ def generate_atom_counts(lower, upper, n_projects, nonbonded_settings):
     required=True,
 )
 @click.option(
+    "--core-type",
+    "-t",
+    help="The type of core this project will use.",
+    type=click.Choice(["openmm", "gromacs"]),
+    required=True,
+)
+@click.option(
     "--contact-email",
     "-e",
     help="Contact email for person responsible for the project",
@@ -104,27 +111,21 @@ def generate_atom_counts(lower, upper, n_projects, nonbonded_settings):
 @click.option(
     "--certificate-file",
     "-c",
-    help="TLS certificate to use for authenticating with API",
+    help="TLS certificate to use for authenticating with API; required for real deployments",
     type=str,
-    required=True,
+    required=False,
 )
 @click.option(
     "--key-file",
     "-k",
-    help="Private key to use for TLS responses",
+    help="Private key to use for TLS responses; required for real deployments",
     type=str,
-    required=True,
-)
-@click.option(
-    "--key-file",
-    "-k",
-    help="Private key to use for TLS responses",
-    type=str,
-    required=True,
+    required=False,
 )
 def create_project(
     project_id,
     core_id,
+    core_type,
     contact_email,
     n_atoms,
     nonbonded_settings,
@@ -132,7 +133,7 @@ def create_project(
     certificate_file,
     key_file,
 ):
-    from .compute.models import ProjectData, FahProject
+    from .compute.models import ProjectData, FahProject, FahCoreType
     from .compute.client import FahAdaptiveSamplingClient
     from .compute.index import FahComputeServiceIndex
     from .utils import NONBONDED_EFFORT, NonbondedSettings, assign_credit
@@ -160,7 +161,8 @@ def create_project(
 
     # create entry in index for this PROJECT
     fah_project = FahProject(
-        project_id=project_id, n_atoms=n_atoms, nonbonded_settings=nonbonded_settings
+        project_id=project_id, n_atoms=n_atoms, nonbonded_settings=nonbonded_settings,
+        core_type=FahCoreType[core_type]
     )
 
     # index = FahComputeServiceIndex(index_file)
@@ -171,6 +173,8 @@ def create_project(
     fahc.create_project_file_from_bytes(
         project_id, fah_project.json().encode("utf-8"), "alchemiscale-project.txt"
     )
+
+    click.echo(f"Created FAH PROJECT {project_id}")
 
 
 @cli.group(help="Subcommands for compute services")

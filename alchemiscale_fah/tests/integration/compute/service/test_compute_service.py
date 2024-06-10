@@ -10,7 +10,7 @@ import time
 import pytest
 
 from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
-from alchemiscale_fah.compute.models import ProjectData, JobData, FahProject
+from alchemiscale_fah.compute.models import ProjectData, JobData, FahProject, FahCoreType
 from alchemiscale_fah.compute.service import (
     FahAsynchronousComputeService,
     FahAsynchronousComputeServiceSettings,
@@ -38,7 +38,7 @@ def fah_client_preloaded(fah_adaptive_sampling_client):
     client.create_project(project_id, project_data)
 
     fah_project = FahProject(
-        project_id=project_id, n_atoms=n_atoms, nonbonded_settings=nonbonded_settings
+        project_id=project_id, n_atoms=n_atoms, nonbonded_settings=nonbonded_settings, core_type=FahCoreType['openmm']
     )
     client.create_project_file_from_bytes(
         project_id, fah_project.json().encode("utf-8"), "alchemiscale-project.txt"

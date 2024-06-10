@@ -13,12 +13,24 @@ from collections import defaultdict
 
 from grolt import Neo4jService, Neo4jDirectorySpec, docker
 from grolt.security import install_self_signed_certificate
+
 from pytest import fixture
+
 from moto import mock_aws
 from moto.server import ThreadedMotoServer
 import uvicorn
 
 from neo4j import GraphDatabase
+
+from gufe import (
+    ChemicalSystem,
+    Transformation,
+    AlchemicalNetwork,
+    SmallMoleculeComponent,
+    LigandAtomMapping,
+)
+
+from openfe_benchmarks import tyk2
 
 from openff.units import unit
 from alchemiscale.models import Scope
@@ -29,7 +41,8 @@ from alchemiscale.storage.models import ComputeServiceID
 
 from alchemiscale.settings import get_base_api_settings
 from alchemiscale.base.api import get_n4js_depends, get_s3os_depends
-from alchemiscale.compute import api, client
+from alchemiscale.compute import api as alchemiscale_compute_api
+from alchemiscale.compute.client import AlchemiscaleComputeClient
 from alchemiscale.storage.models import ComputeServiceID
 from alchemiscale.security.auth import hash_key
 from alchemiscale.security.models import CredentialedComputeIdentity, TokenData
@@ -37,12 +50,15 @@ from alchemiscale.security.models import CredentialedComputeIdentity, TokenData
 from alchemiscale.tests.integration.compute.utils import get_compute_settings_override
 from alchemiscale.tests.integration.utils import running_service
 
+from alchemiscale_fah.compute import api as alchemiscalefah_ws_api
+from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
+from alchemiscale_fah.compute.api import WSStateDB
+from alchemiscale_fah.settings.fah_wsapi_settings import WSAPISettings
+from alchemiscale_fah.tests.integration.compute.utils import get_wsapi_settings_override
 from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
     FahNonEqulibriumCyclingProtocol,
 )
-from alchemiscale_fah.tests.integration.compute.conftest import (
-    generate_tyk2_solvent_network,
-)
+
 
 NEO4J_PROCESS = {}
 NEO4J_VERSION = os.getenv("NEO4J_VERSION", "")
@@ -252,15 +268,15 @@ def compute_api(s3os_server):
     def get_s3os_override():
         return s3os_server
 
-    overrides = copy(api.app.dependency_overrides)
+    overrides = copy(alchemiscale_compute_api.app.dependency_overrides)
 
-    api.app.dependency_overrides[get_base_api_settings] = get_compute_settings_override
-    api.app.dependency_overrides[get_s3os_depends] = get_s3os_override
-    yield api.app
-    api.app.dependency_overrides = overrides
+    alchemiscale_compute_api.app.dependency_overrides[get_base_api_settings] = get_compute_settings_override
+    alchemiscale_compute_api.app.dependency_overrides[get_s3os_depends] = get_s3os_override
+    yield alchemiscale_compute_api.app
+    alchemiscale_compute_api.app.dependency_overrides = overrides
 
 
-def run_server(fastapi_app, settings):
+def compute_run_server(fastapi_app, settings):
     uvicorn.run(
         fastapi_app,
         host=settings.ALCHEMISCALE_COMPUTE_API_HOST,
@@ -273,7 +289,7 @@ def run_server(fastapi_app, settings):
 def compute_uvicorn_server(compute_api):
     settings = get_compute_settings_override()
     with running_service(
-        run_server,
+        compute_run_server,
         port=settings.ALCHEMISCALE_COMPUTE_API_PORT,
         args=(compute_api, settings),
     ):
@@ -292,7 +308,7 @@ def compute_client(
     single_scoped_credentialed_compute,
     compute_service_id,
 ):
-    return client.AlchemiscaleComputeClient(
+    return AlchemiscaleComputeClient(
         api_url="http://127.0.0.1:8000/",
         # use the identifier for the single-scoped user who should have access to some things
         identifier=single_scoped_credentialed_compute.identifier,
@@ -376,3 +392,131 @@ def n4js_preloaded(
     n4js.create_credentialed_entity(single_scoped_credentialed_compute)
 
     return n4js
+
+
+@fixture(scope="module")
+def work_server_api(tmpdir_factory):
+    with tmpdir_factory.mktemp("wsapi_state").as_cwd():
+
+        overrides = copy(alchemiscalefah_ws_api.app.dependency_overrides)
+
+        alchemiscalefah_ws_api.app.dependency_overrides[alchemiscalefah_ws_api.get_wsapi_settings] = (
+            get_wsapi_settings_override
+        )
+
+        yield alchemiscalefah_ws_api.app, get_wsapi_settings_override()
+
+        alchemiscalefah_ws_api.app.dependency_overrides = overrides
+
+
+def ws_run_server(fastapi_app, settings):
+    uvicorn.run(
+        fastapi_app,
+        host=settings.WSAPI_HOST,
+        port=settings.WSAPI_PORT,
+        log_level=settings.WSAPI_LOGLEVEL,
+    )
+
+
+@fixture(scope="module")
+def ws_uvicorn_server(work_server_api):
+    ws_api, settings = work_server_api
+    with running_service(
+        ws_run_server,
+        port=settings.WSAPI_PORT,
+        args=(ws_api, settings),
+    ):
+        yield
+
+
+@fixture(scope="function")
+def fah_adaptive_sampling_client(
+    ws_uvicorn_server,
+):
+    fahasc = FahAdaptiveSamplingClient(
+        as_url="http://127.0.0.1:8001/",
+        ws_url="http://127.0.0.1:8001/",
+        verify=False,
+    )
+    yield fahasc
+
+    fahasc._reset_mock_ws()
+
+
+def generate_tyk2_solvent_network(protocol):
+    tyk2s = tyk2.get_system()
+
+    solvent_network = []
+    for mapping in tyk2s.ligand_network.edges:
+
+        # apply formal charges to avoid long charging times in test suite
+        ligand_A = mapping.componentA.to_openff()
+        ligand_A.assign_partial_charges("gasteiger")
+        ligand_A = SmallMoleculeComponent.from_openff(ligand_A, name=ligand_A.name)
+
+        ligand_B = mapping.componentB.to_openff()
+        ligand_B.assign_partial_charges("gasteiger")
+        ligand_B = SmallMoleculeComponent.from_openff(ligand_B, name=ligand_B.name)
+
+        mapping_ = LigandAtomMapping(
+            componentA=ligand_A,
+            componentB=ligand_B,
+            componentA_to_componentB=mapping.componentA_to_componentB,
+            annotations=mapping.annotations,
+        )
+
+        solvent_transformation = Transformation(
+            stateA=ChemicalSystem(
+                components={
+                    "ligand": ligand_A,
+                    "solvent": tyk2s.solvent_component,
+                },
+                name=f"{ligand_A.name}_water",
+            ),
+            stateB=ChemicalSystem(
+                components={
+                    "ligand": ligand_B,
+                    "solvent": tyk2s.solvent_component,
+                },
+                name=f"{ligand_B.name}_water",
+            ),
+            mapping={"ligand": mapping_},
+            protocol=protocol,
+            name=f"{ligand_A.name}_to_{ligand_B.name}_solvent",
+        )
+
+        solvent_network.append(solvent_transformation)
+
+    return AlchemicalNetwork(edges=solvent_network, name="tyk2_solvent")
+
+
+# def generate_tyk2_complex_network(protocol):
+#    tyk2s = tyk2.get_system()
+#
+#    complex_network = []
+#    for mapping in tyk2s.ligand_network.edges:
+#        complex_transformation = Transformation(
+#            stateA=ChemicalSystem(
+#                components={
+#                    "protein": tyk2s.protein_component,
+#                    "ligand": mapping.componentA,
+#                    "solvent": tyk2s.solvent_component,
+#                },
+#                name=f"{mapping.componentA.name}_complex",
+#            ),
+#            stateB=ChemicalSystem(
+#                components={
+#                    "protein": tyk2s.protein_component,
+#                    "ligand": mapping.componentB,
+#                    "solvent": tyk2s.solvent_component,
+#                },
+#                name=f"{mapping.componentB.name}_complex",
+#            ),
+#            mapping={"ligand": mapping},
+#            protocol=protocol,
+#            name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_complex",
+#        )
+#
+#        complex_network.append(complex_transformation)
+#
+#    return AlchemicalNetwork(edges=complex_network, name="tyk2_complex")

@@ -10,7 +10,7 @@ from alchemiscale.models import ScopedKey
 from gufe.tokenization import GufeKey
 from openff.units import unit
 
-from alchemiscale_fah.compute.models import ProjectData, FahProject
+from alchemiscale_fah.compute.models import ProjectData, FahProject, FahCoreType
 from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
 from alchemiscale_fah.compute.service import execute_DAG
 from alchemiscale_fah.compute.index import FahComputeServiceIndex
@@ -18,7 +18,7 @@ from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
     FahNonEqulibriumCyclingProtocol,
 )
 
-from alchemiscale_fah.tests.integration.compute.conftest import (
+from alchemiscale_fah.tests.integration.conftest import (
     generate_tyk2_solvent_network,
 )
 
@@ -88,7 +88,7 @@ class TestFahNonEqulibriumCyclingProtocol:
         pool = ProcessPoolExecutor()
 
         fah_project = FahProject(
-            project_id="90001", n_atoms=10000, nonbonded_settings="PME"
+            project_id="90001", n_atoms=10000, nonbonded_settings="PME", core_type=FahCoreType['openmm']
         )
 
         t_sk = ScopedKey(
