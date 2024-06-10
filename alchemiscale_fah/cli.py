@@ -161,8 +161,10 @@ def create_project(
 
     # create entry in index for this PROJECT
     fah_project = FahProject(
-        project_id=project_id, n_atoms=n_atoms, nonbonded_settings=nonbonded_settings,
-        core_type=FahCoreType[core_type]
+        project_id=project_id,
+        n_atoms=n_atoms,
+        nonbonded_settings=nonbonded_settings,
+        core_type=FahCoreType[core_type],
     )
 
     # index = FahComputeServiceIndex(index_file)

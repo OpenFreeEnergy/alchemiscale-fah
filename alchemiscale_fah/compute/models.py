@@ -122,6 +122,7 @@ class ASProjectData(FahAdaptiveSamplingModel):
 
 # FahAsynchronousComputeService models
 
+
 class FahCoreType(Enum):
     openmm = "openmm"
     gromacs = "gromacs"

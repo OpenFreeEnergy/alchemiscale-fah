@@ -88,7 +88,10 @@ class TestFahNonEqulibriumCyclingProtocol:
         pool = ProcessPoolExecutor()
 
         fah_project = FahProject(
-            project_id="90001", n_atoms=10000, nonbonded_settings="PME", core_type=FahCoreType['openmm']
+            project_id="90001",
+            n_atoms=10000,
+            nonbonded_settings="PME",
+            core_type=FahCoreType["openmm"],
         )
 
         t_sk = ScopedKey(

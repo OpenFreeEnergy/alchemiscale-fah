@@ -25,26 +25,30 @@ from alchemiscale.security.auth import hash_key, authenticate, AuthenticationErr
 def test_create_project(fah_adaptive_sampling_client):
     fahc: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
 
-    project_id = '90001'
+    project_id = "90001"
     n_atoms = 1000
 
     runner = CliRunner()
-    result = runner.invoke(cli, ['create-project', 
-                                 '--project-id',
-                                 project_id,
-                                 '--core-id',
-                                 '0x23',
-                                 '--core-type',
-                                 'openmm',
-                                 '--contact-email',
-                                 'lol@no.int',
-                                 '--n-atoms',
-                                 n_atoms,
-                                 '--nonbonded-settings',
-                                 'PME',
-                                 '--ws-url',
-                                 fahc.ws_url,
-                                 ])
+    result = runner.invoke(
+        cli,
+        [
+            "create-project",
+            "--project-id",
+            project_id,
+            "--core-id",
+            "0x23",
+            "--core-type",
+            "openmm",
+            "--contact-email",
+            "lol@no.int",
+            "--n-atoms",
+            n_atoms,
+            "--nonbonded-settings",
+            "PME",
+            "--ws-url",
+            fahc.ws_url,
+        ],
+    )
 
     assert result.exit_code == 0
 
@@ -55,16 +59,20 @@ def test_create_project(fah_adaptive_sampling_client):
 def test_generate_atom_counts():
 
     runner = CliRunner()
-    result = runner.invoke(cli, ['generate-atom-counts', 
-                                 '--lower',
-                                 10**3,
-                                 '--upper',
-                                 10**5,
-                                 '--n-projects',
-                                 10,
-                                 '--nonbonded-settings',
-                                 'PME'
-                                 ])
+    result = runner.invoke(
+        cli,
+        [
+            "generate-atom-counts",
+            "--lower",
+            10**3,
+            "--upper",
+            10**5,
+            "--n-projects",
+            10,
+            "--nonbonded-settings",
+            "PME",
+        ],
+    )
 
     assert result.exit_code == 0
 
@@ -86,7 +94,10 @@ def fah_client_preloaded(fah_adaptive_sampling_client):
     client.create_project(project_id, project_data)
 
     fah_project = FahProject(
-        project_id=project_id, n_atoms=n_atoms, nonbonded_settings=nonbonded_settings, core_type=FahCoreType['openmm']
+        project_id=project_id,
+        n_atoms=n_atoms,
+        nonbonded_settings=nonbonded_settings,
+        core_type=FahCoreType["openmm"],
     )
     client.create_project_file_from_bytes(
         project_id, fah_project.json().encode("utf-8"), "alchemiscale-project.txt"

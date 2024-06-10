@@ -270,8 +270,12 @@ def compute_api(s3os_server):
 
     overrides = copy(alchemiscale_compute_api.app.dependency_overrides)
 
-    alchemiscale_compute_api.app.dependency_overrides[get_base_api_settings] = get_compute_settings_override
-    alchemiscale_compute_api.app.dependency_overrides[get_s3os_depends] = get_s3os_override
+    alchemiscale_compute_api.app.dependency_overrides[get_base_api_settings] = (
+        get_compute_settings_override
+    )
+    alchemiscale_compute_api.app.dependency_overrides[get_s3os_depends] = (
+        get_s3os_override
+    )
     yield alchemiscale_compute_api.app
     alchemiscale_compute_api.app.dependency_overrides = overrides
 
@@ -400,9 +404,9 @@ def work_server_api(tmpdir_factory):
 
         overrides = copy(alchemiscalefah_ws_api.app.dependency_overrides)
 
-        alchemiscalefah_ws_api.app.dependency_overrides[alchemiscalefah_ws_api.get_wsapi_settings] = (
-            get_wsapi_settings_override
-        )
+        alchemiscalefah_ws_api.app.dependency_overrides[
+            alchemiscalefah_ws_api.get_wsapi_settings
+        ] = get_wsapi_settings_override
 
         yield alchemiscalefah_ws_api.app, get_wsapi_settings_override()
 

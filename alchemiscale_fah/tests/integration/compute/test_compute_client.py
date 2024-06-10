@@ -8,7 +8,12 @@ from importlib import resources
 import pytest
 
 from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
-from alchemiscale_fah.compute.models import ProjectData, JobData, FahProject, FahCoreType
+from alchemiscale_fah.compute.models import (
+    ProjectData,
+    JobData,
+    FahProject,
+    FahCoreType,
+)
 
 
 class TestFahAdaptiveSamplingClient:
@@ -37,7 +42,10 @@ class TestFahAdaptiveSamplingClient:
         project_id = 90001
 
         fah_project = FahProject(
-            project_id=project_id, n_atoms=10000, nonbonded_settings="NoCutoff", core_type=FahCoreType['openmm']
+            project_id=project_id,
+            n_atoms=10000,
+            nonbonded_settings="NoCutoff",
+            core_type=FahCoreType["openmm"],
         )
 
         project_file = "alchemiscale-project.txt"
