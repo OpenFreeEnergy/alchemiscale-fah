@@ -27,7 +27,7 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
     )
     fah_csr_file: Optional[Path] = Field(
         None,
-        description="Path to the certificate signing request (CSR) file generated from private key, in PEM format. Only needed for use with real FAH servers, not testing. Required for refreshes of the `certificate_file` to be performed via API calls."
+        description="Path to the certificate signing request (CSR) file generated from private key, in PEM format. Only needed for use with real FAH servers, not testing. Required for refreshes of the `certificate_file` to be performed via API calls.",
     )
     fah_client_verify: bool = Field(
         True,

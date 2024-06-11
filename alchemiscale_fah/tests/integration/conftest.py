@@ -434,29 +434,21 @@ def ws_uvicorn_server(work_server_api):
 
 
 @fixture(scope="function")
-def fah_adaptive_sampling_client(
-    ws_uvicorn_server,
-    tmpdir_factory
-):
+def fah_adaptive_sampling_client(ws_uvicorn_server, tmpdir_factory):
     with tmpdir_factory.mktemp("fah_adaptive_sampling_client_certs").as_cwd():
 
         # create key, CSR file
         key = FahAdaptiveSamplingClient.create_key()
-        FahAdaptiveSamplingClient.write_key(
-                key,
-                './key.pem')
+        FahAdaptiveSamplingClient.write_key(key, "./key.pem")
 
-        FahAdaptiveSamplingClient.generate_csr(
-                key,
-                './csr.pem',
-                'lol@no.int')
+        FahAdaptiveSamplingClient.generate_csr(key, "./csr.pem", "lol@no.int")
 
         fahasc = FahAdaptiveSamplingClient(
             as_url="http://127.0.0.1:8001/",
             ws_url="http://127.0.0.1:8001/",
-            certificate_file = './cert.pem',
-            key_file = './key.pem',
-            csr_file = "./csr.pem",
+            certificate_file="./cert.pem",
+            key_file="./key.pem",
+            csr_file="./csr.pem",
             verify=False,
         )
         fahasc._get_initial_certificate()

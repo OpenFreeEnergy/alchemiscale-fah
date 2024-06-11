@@ -47,10 +47,10 @@ def test_create_project(fah_adaptive_sampling_client):
             "PME",
             "--ws-url",
             fahc.ws_url,
-            '--certificate-file',
+            "--certificate-file",
             fahc.certificate_file,
-            '--key-file',
-            fahc.key_file
+            "--key-file",
+            fahc.key_file,
         ],
     )
 

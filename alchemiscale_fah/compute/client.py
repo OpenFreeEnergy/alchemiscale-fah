@@ -80,7 +80,9 @@ class FahAdaptiveSamplingClient:
         # else:
         #    self.key = self.read_key(key_file)
 
-        self.certificate_file = Path(certificate_file).absolute() if certificate_file is not None else None 
+        self.certificate_file = (
+            Path(certificate_file).absolute() if certificate_file is not None else None
+        )
         self.key_file = Path(key_file).absolute() if key_file is not None else None
         self.csr_file = Path(csr_file).absolute() if csr_file is not None else None
 
@@ -590,9 +592,7 @@ class FahAdaptiveSamplingClient:
 
     def _get_initial_certificate(self):
         """Only used for testing via mock ws"""
-        url = urljoin(
-            self.as_url,
-            "/api/auth/csr")
+        url = urljoin(self.as_url, "/api/auth/csr")
 
         r = requests.post(url, verify=False)
 
@@ -606,4 +606,3 @@ class FahAdaptiveSamplingClient:
             f.write(content)
 
         os.rename(cert_file_tmp, self.certificate_file)
-
