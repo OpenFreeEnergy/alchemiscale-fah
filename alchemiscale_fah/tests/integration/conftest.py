@@ -436,15 +436,33 @@ def ws_uvicorn_server(work_server_api):
 @fixture(scope="function")
 def fah_adaptive_sampling_client(
     ws_uvicorn_server,
+    tmpdir_factory
 ):
-    fahasc = FahAdaptiveSamplingClient(
-        as_url="http://127.0.0.1:8001/",
-        ws_url="http://127.0.0.1:8001/",
-        verify=False,
-    )
-    yield fahasc
+    with tmpdir_factory.mktemp("fah_adaptive_sampling_client_certs").as_cwd():
 
-    fahasc._reset_mock_ws()
+        # create key, CSR file
+        key = FahAdaptiveSamplingClient.create_key()
+        FahAdaptiveSamplingClient.write_key(
+                key,
+                './key.pem')
+
+        FahAdaptiveSamplingClient.generate_csr(
+                key,
+                './csr.pem',
+                'lol@no.int')
+
+        fahasc = FahAdaptiveSamplingClient(
+            as_url="http://127.0.0.1:8001/",
+            ws_url="http://127.0.0.1:8001/",
+            certificate_file = './cert.pem',
+            key_file = './key.pem',
+            csr_file = "./csr.pem",
+            verify=False,
+        )
+        fahasc._get_initial_certificate()
+        yield fahasc
+
+        fahasc._reset_mock_ws()
 
 
 def generate_tyk2_solvent_network(protocol):

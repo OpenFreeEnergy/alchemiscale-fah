@@ -9,7 +9,7 @@ import shutil
 from pathlib import Path
 from importlib import resources
 from typing import Annotated
-from datetime import datetime
+import datetime
 from contextlib import contextmanager
 
 from cryptography.hazmat.primitives import serialization
@@ -84,7 +84,7 @@ class WSStateDB:
                         clone=clone_id,
                         gen=1,
                         state="READY",
-                        last=datetime.utcnow(),
+                        last=datetime.datetime.utcnow(),
                     )
                     .json()
                     .encode("utf-8")
@@ -115,7 +115,7 @@ class WSStateDB:
                         clone=clone_id,
                         gen=1,
                         state="FINISHED",
-                        last=datetime.utcnow(),
+                        last=datetime.datetime.utcnow(),
                     )
                     .json()
                     .encode("utf-8")
@@ -140,7 +140,8 @@ def get_tls_private_key_depends(
         key_size=2048,
     )
 
-    secrets_dir = settings.WSAPI_SECRETS_DIR.mkdir(parents=True, exist_ok=True)
+    secrets_dir = settings.WSAPI_SECRETS_DIR
+    secrets_dir.mkdir(parents=True, exist_ok=True)
     private_key_path = secrets_dir / "key.pem"
 
     with open(private_key_path, "wb") as f:
@@ -200,7 +201,7 @@ def as_update_certificate(
     with open(private_key_file, "rb") as f:
         pem = f.read()
 
-    key = serialization.load_pem_private_key(pem, None, default_backend())
+    key = serialization.load_pem_private_key(pem, b"passphrase", default_backend())
 
     # subject and issuer are always the same.
     subject = issuer = x509.Name(
@@ -233,7 +234,7 @@ def as_update_certificate(
         .sign(key, hashes.SHA256())
     )
 
-    return cert.public_bytes(serialization.Encoding.PEM)
+    return Response(cert.public_bytes(serialization.Encoding.PEM))
 
 
 @app.put("/api/projects/{project_id}")
@@ -360,7 +361,7 @@ def get_clone(
 
     # if enough time has passed (3 seconds), then set the job as complete,
     # then return again
-    if (datetime.utcnow() - jobdata.last).total_seconds() > 3:
+    if (datetime.datetime.utcnow() - jobdata.last).total_seconds() > 3:
         _finish_clone(project_id, run_id, clone_id, outputs_dir, statedb)
 
     # return new clone state information

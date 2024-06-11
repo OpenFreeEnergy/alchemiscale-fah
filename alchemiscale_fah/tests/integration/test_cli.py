@@ -47,6 +47,10 @@ def test_create_project(fah_adaptive_sampling_client):
             "PME",
             "--ws-url",
             fahc.ws_url,
+            '--certificate-file',
+            fahc.certificate_file,
+            '--key-file',
+            fahc.key_file
         ],
     )
 
@@ -156,10 +160,11 @@ def compute_service_config(compute_api_args, fah_client_preloaded):
             "loglevel": "INFO",
             "fah_as_url": fahc.as_url,
             "fah_ws_url": fahc.ws_url,
-            "fah_certificate_file": fahc.certificate_file,
-            "fah_key_file": fahc.key_file,
+            "fah_certificate_file": str(fahc.certificate_file),
+            "fah_key_file": str(fahc.key_file),
+            "fah_csr_file": str(fahc.csr_file),
             "fah_client_verify": False,
-            "fah_cert_update_interval": None,
+            "fah_cert_update_interval": 2,
             "index_dir": "./index/index_dir",
             "obj_store": "./index/object_store",
             "fah_project_ids": [90001],

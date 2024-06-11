@@ -18,6 +18,21 @@ from alchemiscale_fah.compute.models import (
 
 class TestFahAdaptiveSamplingClient:
 
+    def test_as_update_certificate(self, fah_adaptive_sampling_client):
+        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+
+        client._get_initial_certificate()
+
+        assert client.certificate_file.exists()
+
+        cert_content = client.read_certificate(client.certificate_file)
+
+        client.as_update_certificate()
+
+        new_cert_content = client.read_certificate(client.certificate_file)
+
+        assert cert_content != new_cert_content
+
     def test_create_project(self, fah_adaptive_sampling_client):
         client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
 

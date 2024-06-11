@@ -83,6 +83,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             ws_url=self.settings.fah_ws_url,
             certificate_file=self.settings.fah_certificate_file,
             key_file=self.settings.fah_key_file,
+            csr_file=self.settings.fah_csr_file,
             verify=self.settings.fah_client_verify,
         )
 

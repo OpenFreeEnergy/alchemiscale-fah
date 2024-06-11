@@ -80,11 +80,11 @@ class FahAdaptiveSamplingClient:
         # else:
         #    self.key = self.read_key(key_file)
 
-        self.certificate_file = certificate_file
-        self.key_file = key_file
-        self.csr_file = csr_file
+        self.certificate_file = Path(certificate_file).absolute() if certificate_file is not None else None 
+        self.key_file = Path(key_file).absolute() if key_file is not None else None
+        self.csr_file = Path(csr_file).absolute() if csr_file is not None else None
 
-        self.cert = (certificate_file, key_file)
+        self.cert = (self.certificate_file, self.key_file)
         self.verify = verify
 
     @staticmethod
@@ -587,3 +587,23 @@ class FahAdaptiveSamplingClient:
             self.ws_url,
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/_finish",
         )
+
+    def _get_initial_certificate(self):
+        """Only used for testing via mock ws"""
+        url = urljoin(
+            self.as_url,
+            "/api/auth/csr")
+
+        r = requests.post(url, verify=False)
+
+        self._check_status(r)
+        content = r.content
+
+        # overwrite certificate file with new certificate contents;
+        # do this by writing to temp file, then do atomic move
+        cert_file_tmp = Path(str(self.certificate_file.absolute()) + ".tmp")
+        with open(cert_file_tmp, "wb") as f:
+            f.write(content)
+
+        os.rename(cert_file_tmp, self.certificate_file)
+
