@@ -56,7 +56,7 @@ from alchemiscale_fah.compute.api import WSStateDB
 from alchemiscale_fah.settings.fah_wsapi_settings import WSAPISettings
 from alchemiscale_fah.tests.integration.compute.utils import get_wsapi_settings_override
 from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
-    FahNonEqulibriumCyclingProtocol,
+    FahNonEquilibriumCyclingProtocol,
 )
 
 
@@ -327,7 +327,7 @@ def compute_client(
 @fixture(scope="module")
 def network_tyk2_solvent():
 
-    settings = FahNonEqulibriumCyclingProtocol.default_settings()
+    settings = FahNonEquilibriumCyclingProtocol.default_settings()
     settings.thermo_settings.pressure = 1.0 * unit.bar
     settings.platform = "CPU"
 
@@ -338,7 +338,7 @@ def network_tyk2_solvent():
     settings.fah_settings.numSteps = 250000
     settings.fah_settings.xtcFreq = 25000
 
-    protocol = FahNonEqulibriumCyclingProtocol(settings)
+    protocol = FahNonEquilibriumCyclingProtocol(settings)
 
     return generate_tyk2_solvent_network(protocol)
 

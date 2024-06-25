@@ -365,7 +365,9 @@ class FahAdaptiveSamplingClient:
             self.ws_url, f"/api/projects/{project_id}/files/{src}"
         )
 
-    def get_project_jobs(self, project_id, since: datetime = None) -> JobResults:
+    def get_project_jobs(
+        self, project_id, since: Optional[datetime] = None
+    ) -> JobResults:
         """Get all active jobs for the project.
 
         Parameters

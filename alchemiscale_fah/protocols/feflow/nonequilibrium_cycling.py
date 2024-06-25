@@ -19,7 +19,7 @@ from ..protocolunit import FahOpenMMSimulationUnit, FahContext
 from ...settings.fah_settings import FahOpenMMCoreSettings
 
 
-class FahNonEqulibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
+class FahNonEquilibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
     """A SimulationUnit for performing and returning results from executing
     nonequilibrium cycling via OpenMM on Folding@Home.
 
@@ -126,8 +126,8 @@ class FahNonEqulibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
 
 
 # TODO: add validators to inputs to ensure good behavior on Folding@Home
-class FahNonEqulibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
-    _simulation_unit = FahNonEqulibriumCyclingSimulationUnit
+class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
+    _simulation_unit = FahNonEquilibriumCyclingSimulationUnit
 
     def __init__(self, settings: Settings):
         super().__init__(settings)

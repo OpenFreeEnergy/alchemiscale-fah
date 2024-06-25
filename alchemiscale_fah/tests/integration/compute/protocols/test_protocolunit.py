@@ -74,8 +74,14 @@ class TestFahOpenMMSimulationUnit:
     def testunit(self):
         return DummyFahOpenMMSimulationUnit()
 
-    def test_select_project(self): ...
+    @pytest.mark.xfail(raises=NotImplementedError)
+    def test_select_project(self):
+        raise NotImplementedError
 
-    def test_generate_core_settings_file(self): ...
+    @pytest.mark.xfail(raises=NotImplementedError)
+    def test_generate_core_settings_file(self):
+        raise NotImplementedError
 
-    def test_execute(self, tmpdir): ...
+    @pytest.mark.xfail(raises=NotImplementedError)
+    def test_execute(self, tmpdir):
+        raise NotImplementedError

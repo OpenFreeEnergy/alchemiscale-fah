@@ -24,7 +24,7 @@ from starlette.responses import Response
 from fastapi import FastAPI, APIRouter, Body, Depends, HTTPException, status, Request
 
 from ..settings.fah_wsapi_settings import WSAPISettings, get_wsapi_settings
-from .models import JobData, ProjectData
+from .models import JobData, ProjectData, JobStateEnum
 
 
 class WSStateDB:
@@ -39,7 +39,7 @@ class WSStateDB:
         self.server_id = server_id
 
     @contextmanager
-    def db(self) -> plyvel.DB:
+    def db(self):
         """Context manager for a LevelDB transaction."""
         with plyvel.DB(str(self.state_dir.absolute()), create_if_missing=True) as db:
             yield db
@@ -67,8 +67,7 @@ class WSStateDB:
 
         return ProjectData.parse_raw(value)
 
-    def create_clone(self, project_id, run_id, clone_id):
-
+    def _update_clone(self, project_id, run_id, clone_id, state: JobStateEnum):
         project_data = self.get_project(project_id)
 
         with self.db() as db:
@@ -83,7 +82,7 @@ class WSStateDB:
                         run=run_id,
                         clone=clone_id,
                         gen=1,
-                        state="READY",
+                        state=state,
                         last=datetime.datetime.utcnow(),
                     )
                     .json()
@@ -91,6 +90,9 @@ class WSStateDB:
                 )
 
                 wb.put(key, value)
+
+    def create_clone(self, project_id, run_id, clone_id):
+        self._update_clone(project_id, run_id, clone_id, state=JobStateEnum.READY)
 
     def get_clone(self, project_id, run_id, clone_id):
         key = f"clones/{project_id}-{run_id}-{clone_id}".encode("utf-8")
@@ -100,28 +102,7 @@ class WSStateDB:
         return JobData.parse_raw(value)
 
     def finish_clone(self, project_id, run_id, clone_id):
-        project_data = self.get_project(project_id)
-
-        with self.db() as db:
-            with db.write_batch(transaction=True) as wb:
-                key = f"clones/{project_id}-{run_id}-{clone_id}".encode("utf-8")
-
-                value = (
-                    JobData(
-                        server=self.server_id,
-                        core=project_data.core_id,
-                        project=project_id,
-                        run=run_id,
-                        clone=clone_id,
-                        gen=1,
-                        state="FINISHED",
-                        last=datetime.datetime.utcnow(),
-                    )
-                    .json()
-                    .encode("utf-8")
-                )
-
-                wb.put(key, value)
+        self._update_clone(project_id, run_id, clone_id, state=JobStateEnum.FINISHED)
 
 
 def get_wsstatedb_depends(

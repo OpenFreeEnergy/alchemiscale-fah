@@ -111,8 +111,9 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
     """
 
+    @staticmethod
     def select_project(
-        self, n_atoms: int, fah_projects: List[FahProject], settings: Settings
+        n_atoms: int, fah_projects: List[FahProject], settings: Settings
     ) -> FahProject:
         """Select the PROJECT with the nearest effort to the given Transformation.
 
@@ -144,7 +145,8 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         return selected_project
 
-    def generate_core_settings_file(self, settings: Settings):
+    @staticmethod
+    def generate_core_settings_file(settings: Settings):
         """Generate a core settings XML file from the Protocol's settings.
 
         Settings that are set to `None` are not included in XML output.

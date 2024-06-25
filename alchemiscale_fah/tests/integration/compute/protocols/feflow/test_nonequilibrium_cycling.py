@@ -1,4 +1,4 @@
-"""Tests for FahNonEqulibriumCyclingProtocol.
+"""Tests for FahNonEquilibriumCyclingProtocol.
 
 """
 
@@ -15,7 +15,7 @@ from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
 from alchemiscale_fah.compute.service import execute_DAG
 from alchemiscale_fah.compute.index import FahComputeServiceIndex
 from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
-    FahNonEqulibriumCyclingProtocol,
+    FahNonEquilibriumCyclingProtocol,
 )
 
 from alchemiscale_fah.tests.integration.conftest import (
@@ -26,7 +26,7 @@ from alchemiscale_fah.tests.integration.conftest import (
 @pytest.fixture(scope="module")
 def network_tyk2_solvent():
 
-    settings = FahNonEqulibriumCyclingProtocol.default_settings()
+    settings = FahNonEquilibriumCyclingProtocol.default_settings()
     settings.thermo_settings.pressure = 1.0 * unit.bar
     settings.platform = "CPU"
 
@@ -37,7 +37,7 @@ def network_tyk2_solvent():
     settings.fah_settings.numSteps = 250000
     settings.fah_settings.xtcFreq = 25000
 
-    protocol = FahNonEqulibriumCyclingProtocol(settings)
+    protocol = FahNonEquilibriumCyclingProtocol(settings)
 
     return generate_tyk2_solvent_network(protocol)
 
@@ -64,10 +64,10 @@ def fah_client_preloaded(fah_adaptive_sampling_client):
     return client
 
 
-class TestFahNonEqulibriumCyclingSimulationUnit: ...
+class TestFahNonEquilibriumCyclingSimulationUnit: ...
 
 
-class TestFahNonEqulibriumCyclingProtocol:
+class TestFahNonEquilibriumCyclingProtocol:
 
     async def test_dag_execute(self, fah_client_preloaded, transformation):
         client: FahAdaptiveSamplingClient = fah_client_preloaded

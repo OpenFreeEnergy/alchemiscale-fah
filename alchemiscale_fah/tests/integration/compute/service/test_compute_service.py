@@ -22,7 +22,7 @@ from alchemiscale_fah.compute.service import (
 )
 from alchemiscale_fah.utils import NonbondedSettings
 from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
-    FahNonEqulibriumCyclingProtocol,
+    FahNonEquilibriumCyclingProtocol,
 )
 
 
@@ -71,7 +71,7 @@ class TestFahAsynchronousComputeService:
                     scratch_basedir=Path("scratch").absolute(),
                     heartbeat_interval=1,
                     sleep_interval=1,
-                    protocols=[FahNonEqulibriumCyclingProtocol.__qualname__],
+                    protocols=[FahNonEquilibriumCyclingProtocol.__qualname__],
                     fah_as_url=fahc.as_url,
                     fah_ws_url=fahc.ws_url,
                     fah_certificate_file=fahc.certificate_file,
