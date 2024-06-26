@@ -1,0 +1,16 @@
+name: alchemiscale-fah-compute
+channels:
+  - conda-forge
+dependencies:
+  - pip
+  - python =3.10
+
+  - alchemiscale-compute
+
+  # alchemiscale-fah dependencies
+  - cryptography
+  - plyvel
+  - zstandard
+
+  - pip:
+    - git+https://github.com/choderalab/feflow.git
