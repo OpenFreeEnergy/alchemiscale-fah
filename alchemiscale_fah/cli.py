@@ -179,6 +179,70 @@ def create_project(
     click.echo(f"Created FAH PROJECT {project_id}")
 
 
+@cli.command(
+    name="create-key-file",
+    help=(
+        "Generate a new private key used for TLS responses; required for real deployments."
+    ),
+)
+@click.option(
+    "--key-file",
+    "-k",
+    help="Path to write key to",
+    type=str,
+    required=True,
+)
+def create_key_file(
+    key_file,
+):
+    from .compute.client import FahAdaptiveSamplingClient
+
+    key = FahAdaptiveSamplingClient.create_key()
+    FahAdaptiveSamplingClient.write_key(key, key_file)
+
+    click.echo(f"Created new private key at {key_file}")
+
+
+@cli.command(
+    name="create-csr-file",
+    help=(
+        "Generate a new certificate signing request (CSR) using private key; required for real deployments."
+    ),
+)
+@click.option(
+    "--key-file",
+    "-k",
+    help="Private key to use for TLS responses; required for real deployments",
+    type=str,
+    required=True,
+)
+@click.option(
+    "--csr-file",
+    "-r",
+    help="Path to write CSR to",
+    type=str,
+    required=True,
+)
+@click.option(
+    "--contact-email",
+    "-e",
+    help="Contact email for person responsible for the project",
+    type=str,
+    required=True,
+)
+def create_csr_file(
+    key_file,
+    csr_file,
+    contact_email,
+):
+    from .compute.client import FahAdaptiveSamplingClient
+
+    key = FahAdaptiveSamplingClient.read_key(key_file)
+    FahAdaptiveSamplingClient.generate_csr(key, csr_file, contact_email)
+
+    click.echo(f"Created new CSR at {csr_file}")
+
+
 @cli.group(help="Subcommands for compute services")
 def compute(): ...
 
