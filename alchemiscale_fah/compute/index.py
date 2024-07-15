@@ -127,7 +127,9 @@ class FahComputeServiceIndex:
 
             wb.put(key, value)
 
-            key = f"tasks/{fah_clone.task_sk}/protocolunits/{fah_clone.protocolunit_key}".encode("utf-8")
+            key = f"tasks/{fah_clone.task_sk}/protocolunits/{fah_clone.protocolunit_key}".encode(
+                "utf-8"
+            )
             value = f"{project_id}-{run_id}-{clone_id}".encode("utf-8")
 
             wb.put(key, value)
@@ -181,7 +183,14 @@ class FahComputeServiceIndex:
 
         return value
 
-    def set_task_protocolunit(self, task: ScopedKey, protocolunit: GufeKey, project_id: str, run_id: str, clone_id: str):
+    def set_task_protocolunit(
+        self,
+        task: ScopedKey,
+        protocolunit: GufeKey,
+        project_id: str,
+        run_id: str,
+        clone_id: str,
+    ):
         """Set the PROJECT, RUN, and CLONE used for the given Task-ProtocolUnit.
 
         Also sets the metadata for the corresponding CLONE.
@@ -200,7 +209,7 @@ class FahComputeServiceIndex:
                     run_id=run_id,
                     clone_id=clone_id,
                     task_sk=task,
-                    protocolunit_key=str(protocolunit)
+                    protocolunit_key=str(protocolunit),
                 )
                 .json()
                 .encode("utf-8")
@@ -209,7 +218,9 @@ class FahComputeServiceIndex:
             wb.put(key, value)
 
     def get_task_protocolunit(
-        self, task: ScopedKey, protocolunit: GufeKey,
+        self,
+        task: ScopedKey,
+        protocolunit: GufeKey,
     ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """Get the PROJECT, RUN, and CLONE used for the given Task-ProtocolUnit, if already present."""
         key = f"tasks/{task}/protocolunits/{protocolunit}".encode("utf-8")
