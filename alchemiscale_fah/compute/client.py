@@ -558,6 +558,15 @@ class FahAdaptiveSamplingClient:
             src,
         )
 
+    def create_clone_output_file_from_bytes(
+        self, project_id, run_id, clone_id, bytedata: bytes, dest: Path
+    ):
+        self._upload_bytes(
+            self.ws_url,
+            f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{dest}",
+            bytedata,
+        )
+
     def get_clone_output_file_to_bytes(self, project_id, run_id, clone_id, src: Path):
         return self._download_bytes(
             self.ws_url,

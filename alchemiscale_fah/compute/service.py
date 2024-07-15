@@ -15,6 +15,7 @@ import threading
 import time
 import logging
 import shutil
+from datetime import datetime
 from concurrent.futures import ProcessPoolExecutor
 
 from gufe.tokenization import GufeKey, JSON_HANDLER
@@ -621,6 +622,19 @@ async def execute_DAG(
     # clean up protocoldagresults from index object state store
     for unit in protocoldag.protocol_units:
         index.del_protocolunit_result(unit.key)
+        
+        # for each FahSimulationUnit, add a file indicating cleanup can be
+        # performed by a separate archival/deletion process
+        if isinstance(unit, FahSimulationUnit):
+           project_id, run_id, clone_id = index.get_task_protocolunit(task_sk, unit.key)
+           complete_marker = str({'completed': datetime.utcnow().isoformat()}).encode('utf-8'),
+
+           fah_client.create_clone_file_from_bytes(
+                   project_id, run_id, clone_id, complete_marker,
+                   "alchemiscale-complete.txt")
+           fah_client.create_clone_output_file_from_bytes(
+                   project_id, run_id, clone_id, complete_marker,
+                   "alchemiscale-complete.txt")
 
     return ProtocolDAGResult(
         name=protocoldag.name,
