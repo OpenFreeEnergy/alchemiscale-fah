@@ -118,7 +118,7 @@ class FahComputeServiceIndex:
     ):
         """Set the metadata for the given CLONE.
 
-        Also sets the metadata for the corresponding Task.
+        Also sets the metadata for the corresponding Task-ProtocolUnit.
 
         """
         with self.db.write_batch(transaction=True) as wb:
@@ -127,7 +127,7 @@ class FahComputeServiceIndex:
 
             wb.put(key, value)
 
-            key = f"tasks/{fah_clone.task_sk}".encode("utf-8")
+            key = f"tasks/{fah_clone.task_sk}/protocolunits/{fah_clone.protocolunit_key}".encode("utf-8")
             value = f"{project_id}-{run_id}-{clone_id}".encode("utf-8")
 
             wb.put(key, value)
@@ -181,14 +181,14 @@ class FahComputeServiceIndex:
 
         return value
 
-    def set_task(self, task: ScopedKey, project_id: str, run_id: str, clone_id: str):
-        """Set the PROJECT, RUN, and CLONE used for the given Task.
+    def set_task_protocolunit(self, task: ScopedKey, protocolunit: GufeKey, project_id: str, run_id: str, clone_id: str):
+        """Set the PROJECT, RUN, and CLONE used for the given Task-ProtocolUnit.
 
         Also sets the metadata for the corresponding CLONE.
 
         """
         with self.db.write_batch(transaction=True) as wb:
-            key = f"tasks/{task}".encode("utf-8")
+            key = f"tasks/{task}/protocolunits/{protocolunit}".encode("utf-8")
             value = f"{project_id}-{run_id}-{clone_id}".encode("utf-8")
 
             wb.put(key, value)
@@ -200,6 +200,7 @@ class FahComputeServiceIndex:
                     run_id=run_id,
                     clone_id=clone_id,
                     task_sk=task,
+                    protocolunit_key=str(protocolunit)
                 )
                 .json()
                 .encode("utf-8")
@@ -207,11 +208,11 @@ class FahComputeServiceIndex:
 
             wb.put(key, value)
 
-    def get_task(
-        self, task: ScopedKey
+    def get_task_protocolunit(
+        self, task: ScopedKey, protocolunit: GufeKey,
     ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-        """Get the PROJECT, RUN, and CLONE used for the given Task, already present."""
-        key = f"tasks/{task}".encode("utf-8")
+        """Get the PROJECT, RUN, and CLONE used for the given Task-ProtocolUnit, if already present."""
+        key = f"tasks/{task}/protocolunits/{protocolunit}".encode("utf-8")
         value = self.db.get(key)
 
         if value is not None:

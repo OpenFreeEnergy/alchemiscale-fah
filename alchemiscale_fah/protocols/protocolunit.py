@@ -187,7 +187,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # if we haven't been assigned PROJECT and RUN IDs, then we need to
         # choose a PROJECT for this Transformation and create a RUN for it;
-        # also need to create a CLONE for this Task
+        # also need to create a CLONE for this Task-ProtocolUnit
         if project_id is None and run_id is None:
             # select PROJECT to use for execution
             project_id = self.select_project(
@@ -208,7 +208,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                 ctx.transformation_sk.gufe_key, project_id, run_id
             )
 
-        # if we got PROJECT and RUN IDs, but no CLONE ID, it means this Task
+        # if we got PROJECT and RUN IDs, but no CLONE ID, it means this Task-ProtocolUnit
         # has never been seen before on this work server, but the
         # Transformation has; we use the existing PROJECT and RUN but create a
         # new CLONE
@@ -226,6 +226,13 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                 clone_id,
                 str(ctx.task_sk).encode("utf-8"),
                 "alchemiscale-task.txt",
+            )
+            ctx.fah_client.create_clone_file_from_bytes(
+                project_id,
+                run_id,
+                clone_id,
+                str(self.key).encode("utf-8"),
+                "alchemiscale-protocolunit.txt",
             )
 
             # TODO: add encryption of files here if enabled as a setting on the

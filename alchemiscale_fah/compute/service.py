@@ -182,11 +182,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         """
         # check if Task seen before, serialized ProtocolDAG present
         # use that ProtocolDAG instead and feed to `execute_DAG`
-        project_id, run_id, clone_id = self.index.get_task(task)
+        protocoldag = self.index.get_task_protocoldag(task)
 
-        if project_id is not None:
-            protocoldag = self.index.get_task_protocoldag(task)
-        else:
+        if protocoldag is None:
             # check if we have seen this Transformation before
             # get PROJECT, RUN if so
             tf_sk = self.client.get_task_transformation(task)
@@ -227,7 +225,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 pool=self._pool,
                 fah_client=self.fah_client,
                 fah_projects=self.fah_projects,
-                project_run_clone=(project_id, run_id, clone_id),
+                project_run=(project_id, run_id),
                 transformation_sk=tf_sk,
                 task_sk=task,
                 index=self.index,
@@ -445,8 +443,7 @@ async def execute_DAG(
     pool: ProcessPoolExecutor,
     fah_client: FahAdaptiveSamplingClient,
     fah_projects: List[FahProject],
-    project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]] = (
-        None,
+    project_run: Tuple[Optional[str], Optional[str]] = (
         None,
         None,
     ),
@@ -477,9 +474,9 @@ async def execute_DAG(
     raise_error : bool
         If True, raise an exception if a ProtocolUnit fails, default True
         if False, any exceptions will be stored as `ProtocolUnitFailure`
-        objects inside the returned `ProtocolDAGResult`
+        objects inside the returned `ProtocolDAGResult`.
     n_retries : int
-        the number of times to attempt, default 0, i.e. try once and only once
+        the number of times to attempt, default 0, i.e. try once and only once.
 
     pool
 
@@ -487,7 +484,10 @@ async def execute_DAG(
 
     fah_projects
 
-    project_run_clone
+    project_run
+        A tuple giving the FAH PROJECT and RUN of the Transformation
+        corresponding to this ProtocolDAG. If ``(None, None)``, this indicates
+        that this Transformation hasn't already been given a PROJECT,RUN.
 
     transformation_sk
 
@@ -548,27 +548,34 @@ async def execute_DAG(
                 scratch.mkdir()
 
                 context = Context(shared=shared, scratch=scratch)
-
-                fah_context = FahContext(
-                    shared=shared,
-                    scratch=scratch,
-                    fah_client=fah_client,
-                    fah_projects=fah_projects,
-                    project_run_clone=project_run_clone,
-                    transformation_sk=transformation_sk,
-                    task_sk=task_sk,
-                    index=index,
-                    encryption_public_key=encryption_public_key,
-                )
-
                 params = dict(context=context, raise_error=raise_error, **inputs)
-                fah_params = dict(
-                    context=fah_context, raise_error=raise_error, **inputs
-                )
 
                 # if this is a FahProtocolUnit, then we await its execution in-process
                 if isinstance(unit, FahSimulationUnit):
-                    result = await unit.execute(**fah_params)
+                    # identify if this Task-ProtocolUnit has an existing CLONE
+                    # associated with it
+                    project_run_clone = index.get_task_protocolunit(task_sk, unit.key)
+
+                    # if we have never seen this Task-ProtocolUnit, then use
+                    # PROJECT,RUN info from Transformation
+                    if not all(project_run_clone):
+                        project_run_clone = (*project_run, None)
+
+                    fah_context = FahContext(
+                        shared=shared,
+                        scratch=scratch,
+                        fah_client=fah_client,
+                        fah_projects=fah_projects,
+                        project_run_clone=project_run_clone,
+                        transformation_sk=transformation_sk,
+                        task_sk=task_sk,
+                        index=index,
+                        encryption_public_key=encryption_public_key,
+                    )
+
+                    result = await unit.execute(
+                        context=fah_context, raise_error=raise_error, **inputs
+                    )
                 else:
                     # otherwise, execute with process pool, allowing CPU bound
                     # units to parallelize across multiple tasks being executed

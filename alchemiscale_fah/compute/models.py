@@ -147,3 +147,4 @@ class FahClone(BaseModel):
     run_id: str
     clone_id: str
     task_sk: ScopedKey
+    protocolunit_key: str
