@@ -134,19 +134,22 @@ class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
 
     @classmethod
     def _default_settings(cls):
-        from .settings import FahNonEquilibriumCyclingSettings
+        from feflow.settings import PeriodicNonequilibriumIntegratorSettings
         from gufe.settings import OpenMMSystemGeneratorFFSettings, ThermoSettings
         from openfe.protocols.openmm_utils.omm_settings import (
-            SystemSettings,
-            SolvationSettings,
+            OpenMMSolvationSettings,
+            OpenMMEngineSettings,
         )
         from openfe.protocols.openmm_rfe.equil_rfe_settings import AlchemicalSettings
+
+        from .settings import FahNonEquilibriumCyclingSettings
 
         return FahNonEquilibriumCyclingSettings(
             forcefield_settings=OpenMMSystemGeneratorFFSettings(),
             thermo_settings=ThermoSettings(temperature=300 * unit.kelvin),
-            system_settings=SystemSettings(),
-            solvation_settings=SolvationSettings(),
+            solvation_settings=OpenMMSolvationSettings(),
             alchemical_settings=AlchemicalSettings(),
+            integrator_settings=PeriodicNonequilibriumIntegratorSettings(),
+            engine_settings=OpenMMEngineSettings(),
             fah_settings=FahOpenMMCoreSettings(),
         )
