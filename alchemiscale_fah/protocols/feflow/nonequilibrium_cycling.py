@@ -148,7 +148,7 @@ class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
             forcefield_settings=OpenMMSystemGeneratorFFSettings(),
             thermo_settings=ThermoSettings(temperature=300 * unit.kelvin),
             solvation_settings=OpenMMSolvationSettings(),
-            alchemical_settings=AlchemicalSettings(),
+            alchemical_settings=AlchemicalSettings(softcore_LJ="gapsys"),
             integrator_settings=PeriodicNonequilibriumIntegratorSettings(),
             engine_settings=OpenMMEngineSettings(),
             fah_settings=FahOpenMMCoreSettings(),
