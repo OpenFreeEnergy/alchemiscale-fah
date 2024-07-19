@@ -49,3 +49,7 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
         ...,
         description="List of FAH PROJECT ids that this compute service should use for executing compute.",
     )
+    fah_poll_interval: int = Field(
+        60,
+        description="Frequency in seconds between polls of FAH WS API for completed jobs."
+    )

@@ -189,8 +189,6 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             # check if we have seen this Transformation before
             # get PROJECT, RUN if so
             tf_sk = self.client.get_task_transformation(task)
-            project_id, run_id = self.index.get_transformation(tf_sk.gufe_key)
-            clone_id = None
 
             # obtain a ProtocolDAG from the task
             self.logger.info("Creating ProtocolDAG from '%s'...", task)
@@ -226,7 +224,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 pool=self._pool,
                 fah_client=self.fah_client,
                 fah_projects=self.fah_projects,
-                project_run=(project_id, run_id),
+                fah_poll_interval=self.settings.fah_poll_interval,
                 transformation_sk=tf_sk,
                 task_sk=task,
                 index=self.index,
@@ -288,8 +286,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # we have exhausted what's available
         async_tasks = []
         for task_sk in task_sks:
-            self.logger.info("Executing task '%s'...", task_sk)
-            async_tasks.append(asyncio.create_task(self.async_execute(task_sk)))
+            if task_sk is not None:
+                self.logger.info("Executing task '%s'...", task_sk)
+                async_tasks.append(asyncio.create_task(self.async_execute(task_sk)))
 
         result_sks = []
         while len(async_tasks) > 0:
@@ -332,8 +331,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 self.logger.info("No new task claimed")
 
             for task_sk in task_sks:
-                self.logger.info("Executing task '%s'...", task_sk)
-                async_tasks.append(asyncio.create_task(self.async_execute(task_sk)))
+                if task_sk is not None:
+                    self.logger.info("Executing task '%s'...", task_sk)
+                    async_tasks.append(asyncio.create_task(self.async_execute(task_sk)))
 
         return result_sks
 
@@ -444,10 +444,7 @@ async def execute_DAG(
     pool: ProcessPoolExecutor,
     fah_client: FahAdaptiveSamplingClient,
     fah_projects: List[FahProject],
-    project_run: Tuple[Optional[str], Optional[str]] = (
-        None,
-        None,
-    ),
+    fah_poll_interval: int = 60,
     transformation_sk: ScopedKey,
     task_sk: ScopedKey,
     index: FahComputeServiceIndex,
@@ -485,10 +482,7 @@ async def execute_DAG(
 
     fah_projects
 
-    project_run
-        A tuple giving the FAH PROJECT and RUN of the Transformation
-        corresponding to this ProtocolDAG. If ``(None, None)``, this indicates
-        that this Transformation hasn't already been given a PROJECT,RUN.
+    fah_poll_interval
 
     transformation_sk
 
@@ -553,24 +547,15 @@ async def execute_DAG(
 
                 # if this is a FahProtocolUnit, then we await its execution in-process
                 if isinstance(unit, FahSimulationUnit):
-                    # identify if this Task-ProtocolUnit has an existing CLONE
-                    # associated with it
-                    project_run_clone = index.get_task_protocolunit(task_sk, unit.key)
-
-                    # if we have never seen this Task-ProtocolUnit, then use
-                    # PROJECT,RUN info from Transformation
-                    if not all(project_run_clone):
-                        project_run_clone = (*project_run, None)
-
                     fah_context = FahContext(
                         shared=shared,
                         scratch=scratch,
                         fah_client=fah_client,
                         fah_projects=fah_projects,
-                        project_run_clone=project_run_clone,
                         transformation_sk=transformation_sk,
                         task_sk=task_sk,
                         index=index,
+                        fah_poll_interval=fah_poll_interval,
                         encryption_public_key=encryption_public_key,
                     )
 
@@ -629,9 +614,7 @@ async def execute_DAG(
             project_id, run_id, clone_id = index.get_task_protocolunit(
                 task_sk, unit.key
             )
-            complete_marker = (
-                str({"completed": datetime.utcnow().isoformat()}).encode("utf-8"),
-            )
+            complete_marker = str({"completed": datetime.utcnow().isoformat()}).encode("utf-8")
 
             fah_client.create_clone_file_from_bytes(
                 project_id,

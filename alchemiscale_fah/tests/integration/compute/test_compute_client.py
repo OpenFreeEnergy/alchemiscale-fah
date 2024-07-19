@@ -225,40 +225,6 @@ class TestFahAdaptiveSamplingClient:
 
         assert content_ == content
 
-    def test_get_clone_output_file_to_bytes(self, fah_adaptive_sampling_client):
-        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
-
-        project_id = 90001
-        run_id = 0
-        clone_id = 0
-
-        project_data = ProjectData(
-            core_id=0x23,
-            contact="lol@no.int",
-            atoms=10000,
-            credit=5000,
-        )
-
-        client.create_project(project_id, project_data)
-
-        client.create_clone(project_id, run_id, clone_id)
-
-        # now, let the job "finish"
-        client._finish_clone_mock_ws(project_id, run_id, clone_id)
-
-        with resources.as_file(
-            resources.files("alchemiscale_fah.tests.data").joinpath("globals.csv")
-        ) as globals_csv_path:
-            with open(globals_csv_path, "r") as f:
-                content = f.read()
-
-        # get output file
-        content_ = client.get_clone_output_file_to_bytes(
-            project_id, run_id, clone_id, "globals.csv"
-        ).decode("utf-8")
-
-        assert content_ == content
-
     def test_get_gen_output_file_to_bytes(self, fah_adaptive_sampling_client):
         client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
 

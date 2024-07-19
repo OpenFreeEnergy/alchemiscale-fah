@@ -113,6 +113,9 @@ init:
   # List of FAH PROJECT (integer) ids that this compute service should use for executing compute.
   fah_project_ids: []
 
+  # Frequency in seconds between polls of FAH WS API for completed jobs.
+  fah_poll_interval: 60
+
 # options for service execution
 start:
 

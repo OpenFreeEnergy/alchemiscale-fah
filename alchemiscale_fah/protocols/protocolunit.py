@@ -38,11 +38,10 @@ class FahExecutionException(RuntimeError): ...
 class FahContext(Context):
     fah_client: FahAdaptiveSamplingClient
     fah_projects: list[FahProject]
-    project_run_clone: Tuple[Optional[str], Optional[str], Optional[str]]
     transformation_sk: ScopedKey
     task_sk: ScopedKey
     index: FahComputeServiceIndex
-    fah_poll_sleep: int = 60
+    fah_poll_interval: int = 60
     encryption_public_key: Optional[str] = None
 
 
@@ -122,7 +121,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         """
         nonbonded_settings = NonbondedSettings[
-            settings.system_settings.nonbonded_method
+            settings.forcefield_settings.nonbonded_method
         ]
 
         # get only PROJECTs with matching nonbonded settings
@@ -183,7 +182,15 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         system = deserialize(system_file)
         n_atoms = system.getNumParticles()
 
-        project_id, run_id, clone_id = ctx.project_run_clone
+        # identify if this Task-ProtocolUnit has an existing PROJECT,RUN,CLONE
+        # associated with it
+        project_id, run_id, clone_id = ctx.index.get_task_protocolunit(ctx.task_sk, self.key)
+
+        # if we have never seen this Task-ProtocolUnit, then  
+        if not all((project_id, run_id, clone_id)):
+            # identify if the Transformation corresponding to this ProtocolUnit
+            # has an existing PROJECT,RUN associated with it
+            project_id, run_id = ctx.index.get_transformation(ctx.transformation_sk.gufe_key)
 
         # if we haven't been assigned PROJECT and RUN IDs, then we need to
         # choose a PROJECT for this Transformation and create a RUN for it;
@@ -254,7 +261,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                         project_id, run_id, clone_id, filepath, filepath.name
                     )
 
-            ctx.index.set_task(ctx.task_sk, project_id, run_id, clone_id)
+            ctx.index.set_task_protocolunit(ctx.task_sk, self.key, project_id, run_id, clone_id)
             ctx.fah_client.create_clone(project_id, run_id, clone_id)
 
         while True:
@@ -270,7 +277,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                 )
 
             else:
-                await asyncio.sleep(ctx.fah_poll_sleep)
+                await asyncio.sleep(ctx.fah_poll_interval)
 
         # read in results from `globals.csv`
         globals_csv = ctx.fah_client.get_gen_output_file_to_bytes(

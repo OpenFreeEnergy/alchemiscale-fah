@@ -82,6 +82,7 @@ class TestFahAsynchronousComputeService:
                     index_dir=Path("./index/index_dir").absolute(),
                     obj_store=Path("./index/object_store").absolute(),
                     fah_project_ids=[90001],
+                    fah_poll_interval=1,
                 )
             )
 

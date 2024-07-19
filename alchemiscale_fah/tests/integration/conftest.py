@@ -329,14 +329,16 @@ def network_tyk2_solvent():
 
     settings = FahNonEquilibriumCyclingProtocol.default_settings()
     settings.thermo_settings.pressure = 1.0 * unit.bar
-    settings.platform = "CPU"
+    settings.engine_settings.compute_platform = "CPU"
 
     # lowering sampling by 10x for demo purposes
-    settings.eq_steps = 25000
-    settings.neq_steps = 25000
+    settings.integrator_settings.equilibrium_steps = 25000
+    settings.integrator_settings.nonequilibrium_steps = 25000
 
-    settings.fah_settings.numSteps = 250000
-    settings.fah_settings.xtcFreq = 25000
+    settings.fah_settings.numSteps = 100000
+    settings.fah_settings.xtcFreq = 2500
+
+    settings.num_cycles = 3
 
     protocol = FahNonEquilibriumCyclingProtocol(settings)
 
@@ -494,7 +496,7 @@ def generate_tyk2_solvent_network(protocol):
                 },
                 name=f"{ligand_B.name}_water",
             ),
-            mapping={"ligand": mapping_},
+            mapping=mapping_,
             protocol=protocol,
             name=f"{ligand_A.name}_to_{ligand_B.name}_solvent",
         )
@@ -502,35 +504,3 @@ def generate_tyk2_solvent_network(protocol):
         solvent_network.append(solvent_transformation)
 
     return AlchemicalNetwork(edges=solvent_network, name="tyk2_solvent")
-
-
-# def generate_tyk2_complex_network(protocol):
-#    tyk2s = tyk2.get_system()
-#
-#    complex_network = []
-#    for mapping in tyk2s.ligand_network.edges:
-#        complex_transformation = Transformation(
-#            stateA=ChemicalSystem(
-#                components={
-#                    "protein": tyk2s.protein_component,
-#                    "ligand": mapping.componentA,
-#                    "solvent": tyk2s.solvent_component,
-#                },
-#                name=f"{mapping.componentA.name}_complex",
-#            ),
-#            stateB=ChemicalSystem(
-#                components={
-#                    "protein": tyk2s.protein_component,
-#                    "ligand": mapping.componentB,
-#                    "solvent": tyk2s.solvent_component,
-#                },
-#                name=f"{mapping.componentB.name}_complex",
-#            ),
-#            mapping={"ligand": mapping},
-#            protocol=protocol,
-#            name=f"{mapping.componentA.name}_to_{mapping.componentB.name}_complex",
-#        )
-#
-#        complex_network.append(complex_transformation)
-#
-#    return AlchemicalNetwork(edges=complex_network, name="tyk2_complex")

@@ -23,30 +23,6 @@ from alchemiscale_fah.tests.integration.conftest import (
 )
 
 
-@pytest.fixture(scope="module")
-def network_tyk2_solvent():
-
-    settings = FahNonEquilibriumCyclingProtocol.default_settings()
-    settings.thermo_settings.pressure = 1.0 * unit.bar
-    settings.platform = "CPU"
-
-    # lowering sampling by 10x for demo purposes
-    settings.eq_steps = 25000
-    settings.neq_steps = 25000
-
-    settings.fah_settings.numSteps = 250000
-    settings.fah_settings.xtcFreq = 25000
-
-    protocol = FahNonEquilibriumCyclingProtocol(settings)
-
-    return generate_tyk2_solvent_network(protocol)
-
-
-@pytest.fixture(scope="module")
-def transformation(network_tyk2_solvent):
-    return sorted(list(network_tyk2_solvent.edges))[0]
-
-
 @pytest.fixture(scope="function")
 def fah_client_preloaded(fah_adaptive_sampling_client):
     client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
@@ -121,6 +97,7 @@ class TestFahNonEquilibriumCyclingProtocol:
             pool=pool,
             fah_client=client,
             fah_projects=[fah_project],
+            fah_poll_interval=1,
             transformation_sk=t_sk,
             task_sk=task_sk,
             index=index,

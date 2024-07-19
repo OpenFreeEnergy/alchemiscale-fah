@@ -368,6 +368,8 @@ async def create_clone_file(
     with open(dest_path, "wb") as f:
         f.write(data)
 
+    return None
+
 
 @app.get("/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{src}")
 def get_clone_file(
@@ -386,22 +388,26 @@ def get_clone_file(
     return Response(file_data)
 
 
-@app.get("/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{src}")
-def get_clone_output_file(
+@app.put("/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{dest}")
+async def create_clone_output_file(
     project_id,
     run_id,
     clone_id,
-    src,
+    dest,
+    file_data: Request,
     outputs_dir: Path = Depends(get_outputs_dir_depends),
 ) -> bytes:
+    data = await file_data.body()
     clone_outputs = outputs_dir / f"PROJ{project_id}/RUN{run_id}/CLONE{clone_id}"
-    gen_outputs = clone_outputs / "results0"
-    src_path = gen_outputs.joinpath(src)
+    dest_path = clone_outputs.joinpath(dest)
 
-    with open(src_path, "rb") as f:
-        file_data = f.read()
+    # make parent directories if they don't exist
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    return Response(file_data)
+    with open(dest_path, "wb") as f:
+        f.write(data)
+
+    return ""
 
 
 @app.get(
