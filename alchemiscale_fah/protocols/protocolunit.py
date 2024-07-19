@@ -184,13 +184,17 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # identify if this Task-ProtocolUnit has an existing PROJECT,RUN,CLONE
         # associated with it
-        project_id, run_id, clone_id = ctx.index.get_task_protocolunit(ctx.task_sk, self.key)
+        project_id, run_id, clone_id = ctx.index.get_task_protocolunit(
+            ctx.task_sk, self.key
+        )
 
-        # if we have never seen this Task-ProtocolUnit, then  
+        # if we have never seen this Task-ProtocolUnit, then
         if not all((project_id, run_id, clone_id)):
             # identify if the Transformation corresponding to this ProtocolUnit
             # has an existing PROJECT,RUN associated with it
-            project_id, run_id = ctx.index.get_transformation(ctx.transformation_sk.gufe_key)
+            project_id, run_id = ctx.index.get_transformation(
+                ctx.transformation_sk.gufe_key
+            )
 
         # if we haven't been assigned PROJECT and RUN IDs, then we need to
         # choose a PROJECT for this Transformation and create a RUN for it;
@@ -261,7 +265,9 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                         project_id, run_id, clone_id, filepath, filepath.name
                     )
 
-            ctx.index.set_task_protocolunit(ctx.task_sk, self.key, project_id, run_id, clone_id)
+            ctx.index.set_task_protocolunit(
+                ctx.task_sk, self.key, project_id, run_id, clone_id
+            )
             ctx.fah_client.create_clone(project_id, run_id, clone_id)
 
         while True:

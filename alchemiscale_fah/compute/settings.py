@@ -51,5 +51,5 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
     )
     fah_poll_interval: int = Field(
         60,
-        description="Frequency in seconds between polls of FAH WS API for completed jobs."
+        description="Frequency in seconds between polls of FAH WS API for completed jobs.",
     )
