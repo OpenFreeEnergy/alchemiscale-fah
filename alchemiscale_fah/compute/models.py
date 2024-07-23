@@ -38,7 +38,7 @@ class FahAdaptiveSamplingModel(BaseModel):
 
 
 class ProjectData(FahAdaptiveSamplingModel):
-    core_id: str = Field(..., description="The core ID.  E.g. 0xa8.")
+    core_id: str = Field(..., description="The core ID in hex (base 16) format.  E.g. 0xa8.")
     contact: str = Field(
         ..., description="Email of the person responsible for the project."
     )
@@ -57,9 +57,16 @@ class ProjectData(FahAdaptiveSamplingModel):
         CompressionTypeEnum.ZLIB, description="Enable WU compression."
     )
 
-    # @validator('core_id', pre=True, always=True)
-    # def validate_core_id(cls, v, values, **kwargs):
-    #    return int(v, 16) if isinstance(v, str) else v
+    @validator('core_id', pre=True, always=True)
+    def validate_core_id(cls, v, values, **kwargs):
+        if not v[:2] == "0x":
+            raise ValueError("`core_id` must be given in hex format, e.g. 0xa8")
+        try:
+            int(v, 16) 
+        except:
+            raise ValueError("`core_id` must be given in hex format, e.g. 0xa8")
+
+        return v
 
     # TODO: add validator to preconvert emails from strings
     # TODO: add validator to handle compression case insensitive
