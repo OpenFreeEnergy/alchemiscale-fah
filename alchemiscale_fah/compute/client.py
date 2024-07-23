@@ -62,6 +62,9 @@ class FahAdaptiveSamplingClient:
             private key, in PEM format. Only needed for use with real FAH
             servers, not testing. Required for refreshes of the
             `certificate_file` to be performed via API calls.
+        verify
+            If ``False``, do not verify server's TLS certificate; often used
+            for testing in the case of self-signed certificates in use.
 
         """
         as_url = urlparse(as_url)
@@ -70,15 +73,6 @@ class FahAdaptiveSamplingClient:
         self.as_url = as_url.geturl()
         self.ws_url = ws_url.geturl()
         self.ws_ip_addr = socket.gethostbyname(ws_url.hostname)
-
-        # self.certificate = (
-        #    self.read_certificate(certificate_file) if certificate_file else None
-        # )
-
-        # if key_file is None:
-        #    self.key = self.create_key()
-        # else:
-        #    self.key = self.read_key(key_file)
 
         self.certificate_file = (
             Path(certificate_file).absolute() if certificate_file is not None else None
@@ -152,54 +146,50 @@ class FahAdaptiveSamplingClient:
 
         return pem
 
-    def _check_status(self, r):
-        if r.status_code != 200:
-            raise Exception("Request failed with %d: %s" % (r.status_code, r.text))
-
     def _get(self, api_url, endpoint, **params):
         url = urljoin(api_url, endpoint)
         r = requests.get(url, cert=self.cert, params=params, verify=self.verify)
-        self._check_status(r)
+        r.raise_for_status()
         return r.json()
 
     def _put(self, api_url, endpoint, data=None):
         url = urljoin(api_url, endpoint)
         r = requests.put(url, json=data, cert=self.cert, verify=self.verify)
-        self._check_status(r)
+        r.raise_for_status()
 
     def _post(self, api_url, endpoint, data=None):
         url = urljoin(api_url, endpoint)
         r = requests.post(url, json=data, cert=self.cert, verify=self.verify)
-        self._check_status(r)
+        r.raise_for_status()
         return r.content
 
     def _delete(self, api_url, endpoint):
         url = urljoin(api_url, endpoint)
         r = requests.delete(url, cert=self.cert, verify=self.verify)
-        self._check_status(r)
+        r.raise_for_status()
 
     def _upload(self, api_url, endpoint, filename):
         url = urljoin(api_url, endpoint)
         with open(filename, "rb") as f:
             r = requests.put(url, data=f, cert=self.cert, verify=self.verify)
-            self._check_status(r)
+            r.raise_for_status()
 
     def _upload_bytes(self, api_url, endpoint, bytedata):
         url = urljoin(api_url, endpoint)
         r = requests.put(url, data=bytedata, cert=self.cert, verify=self.verify)
-        self._check_status(r)
+        r.raise_for_status()
 
     def _download(self, api_url, endpoint, filename):
         url = urljoin(api_url, endpoint)
         r = requests.get(url, cert=self.cert, verify=self.verify, stream=True)
-        self._check_status(r)
+        r.raise_for_status()
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     def _download_bytes(self, api_url, endpoint):
         url = urljoin(api_url, endpoint)
         r = requests.get(url, cert=self.cert, verify=self.verify, stream=True)
-        self._check_status(r)
+        r.raise_for_status()
 
         bytedata = r.raw.read(decode_content=True)
         r.close()
@@ -232,7 +222,7 @@ class FahAdaptiveSamplingClient:
             self.as_url, f"/api/ws/{self.ws_ip_addr}", as_workserver_data.dict()
         )
 
-    def as_get_project(self, project_id) -> ASProjectData:
+    def as_get_project(self, project_id: int) -> ASProjectData:
         """Get project attributes on the assignment server."""
         return ASProjectData(
             **self._get(
@@ -241,7 +231,7 @@ class FahAdaptiveSamplingClient:
             )
         )
 
-    def as_set_project(self, project_id, weight, constraints):
+    def as_set_project(self, project_id: int, weight: float, constraints: str):
         """Set project attributes on the assignment server."""
 
         as_project_data = ASProjectData(weight=weight, constraints=constraints)
@@ -251,7 +241,7 @@ class FahAdaptiveSamplingClient:
             as_project_data.dict(),
         )
 
-    def as_reset_project(self, project_id):
+    def as_reset_project(self, project_id: int):
         """Set project attributes to default on the assignment server.
 
         Sets project weight to 0, drops all constraints.
@@ -270,19 +260,19 @@ class FahAdaptiveSamplingClient:
             for key, value in self._get(self.ws_url, f"/api/projects").items()
         }
 
-    def create_project(self, project_id, project_data: ProjectData):
+    def create_project(self, project_id: int, project_data: ProjectData):
         self._put(self.ws_url, f"/api/projects/{project_id}", project_data.dict())
 
-    def update_project(self, project_id, project_data: ProjectData):
+    def update_project(self, project_id: int, project_data: ProjectData):
         self.create_project(project_id, project_data)
 
-    def delete_project(self, project_id):
+    def delete_project(self, project_id: int):
         self._delete(self.ws_url, f"/api/projects/{project_id}")
 
-    def get_project(self, project_id) -> ProjectData:
+    def get_project(self, project_id: int) -> ProjectData:
         return ProjectData(**self._get(self.ws_url, f"/api/projects/{project_id}"))
 
-    def list_project_files(self, project_id) -> list[FileData]:
+    def list_project_files(self, project_id: int) -> list[FileData]:
         """Get a list of files associated with a project.
 
         Parameters
@@ -303,7 +293,7 @@ class FahAdaptiveSamplingClient:
             )
         ]
 
-    def create_project_file(self, project_id, src: Path, dest: Path):
+    def create_project_file(self, project_id: int, src: Path, dest: Path):
         """Upload a file to the PROJECT directory tree.
 
         Parameters
@@ -322,14 +312,16 @@ class FahAdaptiveSamplingClient:
             src,
         )
 
-    def create_project_file_from_bytes(self, project_id, bytedata: bytes, dest: Path):
+    def create_project_file_from_bytes(
+        self, project_id: int, bytedata: bytes, dest: Path
+    ):
         self._upload_bytes(
             self.ws_url,
             f"/api/projects/{project_id}/files/{dest}",
             bytedata,
         )
 
-    def delete_project_file(self, project_id, path):
+    def delete_project_file(self, project_id: int, path: Path):
         """Delete a file from the PROJECT directory tree.
 
         Parameters
@@ -345,7 +337,7 @@ class FahAdaptiveSamplingClient:
             f"/api/projects/{project_id}/files/{path}",
         )
 
-    def get_project_file(self, project_id, src, dest):
+    def get_project_file(self, project_id: int, src: Path, dest: Path):
         """Download a file from the PROJECT directory tree.
 
         Parameters
@@ -360,13 +352,13 @@ class FahAdaptiveSamplingClient:
         """
         self._download(self.ws_url, f"/api/projects/{project_id}/files/{src}", dest)
 
-    def get_project_file_to_bytes(self, project_id, src):
+    def get_project_file_to_bytes(self, project_id: int, src: Path):
         return self._download_bytes(
             self.ws_url, f"/api/projects/{project_id}/files/{src}"
         )
 
     def get_project_jobs(
-        self, project_id, since: Optional[datetime] = None
+        self, project_id: int, since: Optional[datetime] = None
     ) -> JobResults:
         """Get all active jobs for the project.
 
@@ -389,7 +381,7 @@ class FahAdaptiveSamplingClient:
             **self._get(self.ws_url, f"/api/projects/{project_id}/jobs", since=since)
         )
 
-    def create_run_file(self, project_id, run_id, src: Path, dest: Path):
+    def create_run_file(self, project_id: int, run_id: int, src: Path, dest: Path):
         self._upload(
             self.ws_url,
             f"/api/projects/{project_id}/files/RUN{run_id}/{dest}",
@@ -397,7 +389,7 @@ class FahAdaptiveSamplingClient:
         )
 
     def create_run_file_from_bytes(
-        self, project_id, run_id, bytedata: bytes, dest: Path
+        self, project_id: int, run_id: int, bytedata: bytes, dest: Path
     ):
         self._upload_bytes(
             self.ws_url,
@@ -405,7 +397,7 @@ class FahAdaptiveSamplingClient:
             bytedata,
         )
 
-    def get_run_file(self, project_id, run_id, src, dest):
+    def get_run_file(self, project_id: int, run_id: int, src: Path, dest):
         """Download a file from the given RUN directory tree.
 
          Parameters
@@ -424,28 +416,19 @@ class FahAdaptiveSamplingClient:
             self.ws_url, f"/api/projects/{project_id}/files/RUN{run_id}/{src}", dest
         )
 
-    def get_run_file_to_bytes(self, project_id, run_id, src):
+    def get_run_file_to_bytes(self, project_id: int, run_id: int, src: Path):
         return self._download_bytes(
             self.ws_url, f"/api/projects/{project_id}/files/RUN{run_id}/{src}"
         )
 
-    def delete_run_file(self, project_id, run_id, path: Path):
+    def delete_run_file(self, project_id: int, run_id: int, path: Path):
         self._delete(
             self.ws_url,
             f"/api/projects/{project_id}/files/RUN{run_id}/{path}",
         )
 
-    def create_clone(self, project_id, run_id, clone_id):
+    def create_clone(self, project_id: int, run_id: int, clone_id: int):
         """Start a new CLONE for a given RUN."""
-
-        # self._put(
-        #    self.ws_url,
-        #    f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/create",
-        # )
-        # self._put(
-        #    self.ws_url,
-        #    f"/api/projects/{project_id}/runs/{run_id}?clones=1"#&offset={clone_id}"
-        # )
 
         self._put(
             self.ws_url,
@@ -453,7 +436,7 @@ class FahAdaptiveSamplingClient:
             data={"clones": int(clone_id) + 1},
         )
 
-    def fail_clone(self, project_id, run_id, clone_id):
+    def fail_clone(self, project_id: int, run_id: int, clone_id: int):
         """Fail a CLONE for a given RUN."""
 
         self._put(
@@ -461,7 +444,7 @@ class FahAdaptiveSamplingClient:
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/fail",
         )
 
-    def reset_clone(self, project_id, run_id, clone_id):
+    def reset_clone(self, project_id: int, run_id: int, clone_id: int):
         """Reset a CLONE for a given RUN."""
 
         self._put(
@@ -469,7 +452,7 @@ class FahAdaptiveSamplingClient:
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/reset",
         )
 
-    def stop_clone(self, project_id, run_id, clone_id):
+    def stop_clone(self, project_id: int, run_id: int, clone_id: int):
         """Stop a CLONE for a given RUN."""
 
         self._put(
@@ -477,7 +460,7 @@ class FahAdaptiveSamplingClient:
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/stop",
         )
 
-    def restart_clone(self, project_id, run_id, clone_id):
+    def restart_clone(self, project_id: int, run_id: int, clone_id: int):
         """Restart a CLONE for a given RUN."""
 
         self._put(
@@ -485,7 +468,7 @@ class FahAdaptiveSamplingClient:
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/restart",
         )
 
-    def get_clone(self, project_id, run_id, clone_id) -> JobData:
+    def get_clone(self, project_id: int, run_id: int, clone_id: int) -> JobData:
         """Get state information for the given CLONE."""
 
         return JobData(
@@ -495,7 +478,9 @@ class FahAdaptiveSamplingClient:
             )
         )
 
-    def list_clone_files(self, project_id, run_id, clone_id) -> list[FileData]:
+    def list_clone_files(
+        self, project_id: int, run_id: int, clone_id: int
+    ) -> list[FileData]:
         return [
             FileData(**i)
             for i in self._get(
@@ -504,7 +489,9 @@ class FahAdaptiveSamplingClient:
             )
         ]
 
-    def create_clone_file(self, project_id, run_id, clone_id, src: Path, dest: Path):
+    def create_clone_file(
+        self, project_id: int, run_id: int, clone_id: int, src: Path, dest: Path
+    ):
         self._upload(
             self.ws_url,
             f"/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{dest}",
@@ -512,7 +499,7 @@ class FahAdaptiveSamplingClient:
         )
 
     def create_clone_file_from_bytes(
-        self, project_id, run_id, clone_id, bytedata: bytes, dest: Path
+        self, project_id: int, run_id: int, clone_id: int, bytedata: bytes, dest: Path
     ):
         self._upload_bytes(
             self.ws_url,
@@ -520,7 +507,9 @@ class FahAdaptiveSamplingClient:
             bytedata,
         )
 
-    def get_clone_file(self, project_id, run_id, clone_id, src, dest):
+    def get_clone_file(
+        self, project_id: int, run_id: int, clone_id: int, src: Path, dest: Path
+    ):
         """Download a file from the given CLONE input directory tree.
 
         Parameters
@@ -543,14 +532,16 @@ class FahAdaptiveSamplingClient:
             dest,
         )
 
-    def get_clone_file_to_bytes(self, project_id, run_id, clone_id, src):
+    def get_clone_file_to_bytes(
+        self, project_id: int, run_id: int, clone_id: int, src: Path
+    ):
         return self._download_bytes(
             self.ws_url,
             f"/api/projects/{project_id}/files/RUN{run_id}/CLONE{clone_id}/{src}",
         )
 
     def create_clone_output_file(
-        self, project_id, run_id, clone_id, src: Path, dest: Path
+        self, project_id: int, run_id: int, clone_id: int, src: Path, dest: Path
     ):
         self._upload(
             self.ws_url,
@@ -559,7 +550,7 @@ class FahAdaptiveSamplingClient:
         )
 
     def create_clone_output_file_from_bytes(
-        self, project_id, run_id, clone_id, bytedata: bytes, dest: Path
+        self, project_id: int, run_id: int, clone_id: int, bytedata: bytes, dest: Path
     ):
         self._upload_bytes(
             self.ws_url,
@@ -567,13 +558,17 @@ class FahAdaptiveSamplingClient:
             bytedata,
         )
 
-    def get_clone_output_file_to_bytes(self, project_id, run_id, clone_id, src: Path):
+    def get_clone_output_file_to_bytes(
+        self, project_id: int, run_id: int, clone_id: int, src: Path
+    ):
         return self._download_bytes(
             self.ws_url,
             f"/api/projects/{project_id}/runs/{run_id}/clones/{clone_id}/files/{src}",
         )
 
-    def list_gen_files(self, project_id, run_id, clone_id, gen_id) -> list[FileData]:
+    def list_gen_files(
+        self, project_id: int, run_id: int, clone_id: int, gen_id: int
+    ) -> list[FileData]:
         return [
             FileData(**i)
             for i in self._get(
@@ -583,7 +578,7 @@ class FahAdaptiveSamplingClient:
         ]
 
     def get_gen_output_file_to_bytes(
-        self, project_id, run_id, clone_id, gen_id, src: Path
+        self, project_id: int, run_id: int, clone_id: int, gen_id: int, src: Path
     ):
         return self._download_bytes(
             self.ws_url,
@@ -594,7 +589,7 @@ class FahAdaptiveSamplingClient:
         """Only used for testing via mock ws"""
         self._put(self.ws_url, "/reset")
 
-    def _finish_clone_mock_ws(self, project_id, run_id, clone_id):
+    def _finish_clone_mock_ws(self, project_id: int, run_id: int, clone_id: int):
         """Only used for testing via mock ws"""
         self._put(
             self.ws_url,
@@ -607,7 +602,7 @@ class FahAdaptiveSamplingClient:
 
         r = requests.post(url, verify=False)
 
-        self._check_status(r)
+        r.raise_for_status()
         content = r.content
 
         # overwrite certificate file with new certificate contents;
