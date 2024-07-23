@@ -37,7 +37,7 @@ class FahExecutionException(RuntimeError): ...
 @dataclass
 class FahContext(Context):
     fah_client: FahAdaptiveSamplingClient
-    fah_projects: list[FahProject]
+    fah_projects: List[FahProject]
     transformation_sk: ScopedKey
     task_sk: ScopedKey
     index: FahComputeServiceIndex
@@ -100,8 +100,8 @@ class FahSimulationUnit(ProtocolUnit):
 
         return result
 
-    def _execute(self, ctx, *, state_a, state_b, mapping, settings, **inputs):
-        return {}
+    @abc.abstractmethod
+    def _execute(self, ctx, *, state_a, state_b, mapping, settings, **inputs): ...
 
 
 class FahOpenMMSimulationUnit(FahSimulationUnit):
@@ -249,7 +249,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
             # TODO: add encryption of files here if enabled as a setting on the
             # service use configured public key
             if ctx.encryption_public_key:
-                ...
+                raise NotImplementedError("Encryption support not yet implemented.")
 
             else:
                 ctx.fah_client.create_clone_file_from_bytes(

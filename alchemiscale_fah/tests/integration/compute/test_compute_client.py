@@ -16,6 +16,23 @@ from alchemiscale_fah.compute.models import (
 )
 
 
+@pytest.fixture(scope="function")
+def fah_client_preloaded(fah_adaptive_sampling_client):
+    client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+    project_id = 90001
+
+    project_data = ProjectData(
+        core_id="0x23",
+        contact="lol@no.int",
+        atoms=10000,
+        credit=5000,
+    )
+
+    client.create_project(project_id, project_data)
+
+    return client, project_id
+
+
 class TestFahAdaptiveSamplingClient:
 
     def test_as_update_certificate(self, fah_adaptive_sampling_client):
@@ -75,20 +92,10 @@ class TestFahAdaptiveSamplingClient:
 
         assert fah_project_ == fah_project
 
-    def test_create_run_file_from_bytes(self, fah_adaptive_sampling_client):
-        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+    def test_create_run_file_from_bytes(self, fah_client_preloaded):
+        client, project_id = fah_client_preloaded
 
-        project_id = 90001
         run_id = 0
-
-        project_data = ProjectData(
-            core_id="0x23",
-            contact="lol@no.int",
-            atoms=10000,
-            credit=5000,
-        )
-
-        client.create_project(project_id, project_data)
 
         # create test file
         content = b"brown cow how now"
@@ -102,21 +109,11 @@ class TestFahAdaptiveSamplingClient:
 
         assert content_ == content
 
-    def test_create_clone(self, fah_adaptive_sampling_client):
-        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+    def test_create_clone(self, fah_client_preloaded):
+        client, project_id = fah_client_preloaded
 
-        project_id = 90001
         run_id = 0
         clone_id = 0
-
-        project_data = ProjectData(
-            core_id="0x23",
-            contact="lol@no.int",
-            atoms=10000,
-            credit=5000,
-        )
-
-        client.create_project(project_id, project_data)
 
         client.create_clone(project_id, run_id, clone_id)
 
@@ -129,21 +126,11 @@ class TestFahAdaptiveSamplingClient:
         assert jobdata.state == "READY"
         assert jobdata.core == 0x23
 
-    def test_get_clone(self, fah_adaptive_sampling_client):
-        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+    def test_get_clone(self, fah_client_preloaded):
+        client, project_id = fah_client_preloaded
 
-        project_id = 90001
         run_id = 0
         clone_id = 0
-
-        project_data = ProjectData(
-            core_id="0x23",
-            contact="lol@no.int",
-            atoms=10000,
-            credit=5000,
-        )
-
-        client.create_project(project_id, project_data)
 
         client.create_clone(project_id, run_id, clone_id)
 
@@ -163,21 +150,11 @@ class TestFahAdaptiveSamplingClient:
 
         assert jobdata.state == "FINISHED"
 
-    def test_create_clone_file(self, fah_adaptive_sampling_client):
-        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+    def test_create_clone_file(self, fah_client_preloaded):
+        client, project_id = fah_client_preloaded
 
-        project_id = 90001
         run_id = 0
         clone_id = 0
-
-        project_data = ProjectData(
-            core_id="0x23",
-            contact="lol@no.int",
-            atoms=10000,
-            credit=5000,
-        )
-
-        client.create_project(project_id, project_data)
 
         # create test file
         content = "brown cow how now"
@@ -197,21 +174,11 @@ class TestFahAdaptiveSamplingClient:
 
         assert content_ == content
 
-    def test_create_clone_file_from_bytes(self, fah_adaptive_sampling_client):
-        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+    def test_create_clone_file_from_bytes(self, fah_client_preloaded):
+        client, project_id = fah_client_preloaded
 
-        project_id = 90001
         run_id = 0
         clone_id = 0
-
-        project_data = ProjectData(
-            core_id="0x23",
-            contact="lol@no.int",
-            atoms=10000,
-            credit=5000,
-        )
-
-        client.create_project(project_id, project_data)
 
         # create test file
         content = b"brown cow how now"
@@ -225,22 +192,12 @@ class TestFahAdaptiveSamplingClient:
 
         assert content_ == content
 
-    def test_get_gen_output_file_to_bytes(self, fah_adaptive_sampling_client):
-        client: FahAdaptiveSamplingClient = fah_adaptive_sampling_client
+    def test_get_gen_output_file_to_bytes(self, fah_client_preloaded):
+        client, project_id = fah_client_preloaded
 
-        project_id = 90001
         run_id = 0
         clone_id = 0
         gen_id = 0
-
-        project_data = ProjectData(
-            core_id="0x23",
-            contact="lol@no.int",
-            atoms=10000,
-            credit=5000,
-        )
-
-        client.create_project(project_id, project_data)
 
         client.create_clone(project_id, run_id, clone_id)
 

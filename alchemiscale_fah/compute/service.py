@@ -168,7 +168,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             )
             self.fah_cert_update_thread.start()
 
-        # check that heartbeat is still alive; if not, resurrect it
+        # check that cert refresh thread is still alive; if not, resurrect it
         elif not self.fah_cert_update_thread.is_alive():
             self.fah_cert_update_thread = threading.Thread(
                 target=self.update_fah_cert, daemon=True
@@ -474,23 +474,29 @@ async def execute_DAG(
         if False, any exceptions will be stored as `ProtocolUnitFailure`
         objects inside the returned `ProtocolDAGResult`.
     n_retries : int
-        the number of times to attempt, default 0, i.e. try once and only once.
-
+        The number of times to attempt each `ProtocolUnit`, default 0, i.e. try
+        once and only once.
     pool
-
+        The `ProcessPoolExecutor` to use for parallel execution of
+        non-`FahSimulationUnit`s.
     fah_client
-
+        The `FahAdaptiveSamplingClient` to use for interacting with a FAH
+        Assignment Server (AS) and Work Server (WS).
     fah_projects
-
+        A list of `FahProject`s to use for compute of `FahSimulationUnit`s, created with
+        the `alchemiscale-fah` CLI.
     fah_poll_interval
-
+        Frequency in seconds between polls of FAH WS API for completed jobs.
     transformation_sk
-
+        `ScopedKey` of the `Transformation` this `ProtocolDAG` corresponds to.
     task_sk
-
+        `ScopedKey` of the alchemiscale `Task` this `ProtocolDAG` corresponds to.
     index
-
+        The `FahComputeServiceIndex` to use for updating and reading compute
+        service state.
     encryption_public_key
+        The RSA public key to use for encrypting work unit payloads; ``None``
+        means no encryption is applied.
 
     Returns
     -------

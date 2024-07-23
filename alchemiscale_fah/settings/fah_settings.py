@@ -86,6 +86,10 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         "globals.csv",
         description="File to write global variables to (default: globals.csv)",
     )
+    MWExclusionThreshold: float = Field(
+        0,
+        description="Molecules below this molecular weight threshold will be excluded from display in the viewer (default: 0)",
+    )
     disableCheckpointStateTests: int = Field(
         0,
         description="If 1, will disable checkpoint State tests; 0 will perform State tests (default: 0)",
