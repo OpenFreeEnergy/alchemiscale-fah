@@ -1,6 +1,6 @@
 """
-:mod:`alchemiscale_fah.compute.api` --- mock F@H Work Server API for testing
-============================================================================
+:mod:`alchemiscale_fah.tests.integration.compute.api` --- mock F@H Work Server API for testing
+==============================================================================================
 
 """
 
@@ -23,8 +23,8 @@ import plyvel
 from starlette.responses import Response
 from fastapi import FastAPI, APIRouter, Body, Depends, HTTPException, status, Request
 
-from ..settings.fah_wsapi_settings import WSAPISettings, get_wsapi_settings
-from .models import JobData, ProjectData, JobStateEnum
+from ..settings import WSAPISettings, get_wsapi_settings
+from ....compute.models import JobData, ProjectData, JobStateEnum
 
 
 class WSStateDB:

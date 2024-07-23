@@ -76,7 +76,7 @@ class ProjectData(FahAdaptiveSamplingModel):
 
 class JobData(FahAdaptiveSamplingModel):
     server: int = Field(..., description="ID for work server that executed this job.")
-    core: Optional[int] = Field(None, description="ID for core that executed this job.")
+    core: Optional[int] = Field(None, description="ID for core that executed this job, as base-10 integer.")
     project: int = Field(..., description="The project ID.")
     run: int = Field(..., description="The job run.")
     clone: int = Field(..., description="The job clone.")
@@ -93,6 +93,15 @@ class JobData(FahAdaptiveSamplingModel):
     )
     progress: Optional[int] = Field(None, description="Job progress.")
 
+    @validator("core", pre=True, always=True)
+    def validate_core(cls, v, values, **kwargs):
+        if isinstance(v, str):
+            if v[:2] == '0x':
+                return int(v, 16)
+            else:
+                return int(v)
+        else:
+            return v
 
 class JobResults(FahAdaptiveSamplingModel):
     jobs: list[JobData] = Field(..., description="List of jobs.")

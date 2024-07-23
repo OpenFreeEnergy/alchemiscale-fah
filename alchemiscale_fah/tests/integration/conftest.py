@@ -50,9 +50,9 @@ from alchemiscale.security.models import CredentialedComputeIdentity, TokenData
 from alchemiscale.tests.integration.compute.utils import get_compute_settings_override
 from alchemiscale.tests.integration.utils import running_service
 
-from alchemiscale_fah.compute import api as alchemiscalefah_ws_api
 from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
-from alchemiscale_fah.compute.api import WSStateDB
+from alchemiscale_fah.tests.integration.compute import api as alchemiscalefah_ws_api
+from alchemiscale_fah.tests.integration.compute.api import WSStateDB
 from alchemiscale_fah.settings.fah_wsapi_settings import WSAPISettings
 from alchemiscale_fah.tests.integration.compute.utils import get_wsapi_settings_override
 from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
