@@ -1,4 +1,3 @@
-from enum import StrEnum
 from typing import Optional
 from ipaddress import IPv4Address
 from datetime import datetime
@@ -20,7 +19,7 @@ from ..utils import NonbondedSettings
 # FahAdaptiveSamplingClient models
 
 
-class CompressionTypeEnum(StrEnum):
+class CompressionTypeEnum(Enum):
     NONE = "NONE"
     BZIP2 = "BZIP2"
     ZLIB = "ZLIB"
@@ -153,7 +152,7 @@ class ASProjectData(FahAdaptiveSamplingModel):
 # FahAsynchronousComputeService models
 
 
-class FahCoreType(StrEnum):
+class FahCoreType(Enum):
     openmm = "openmm"
     gromacs = "gromacs"
 
