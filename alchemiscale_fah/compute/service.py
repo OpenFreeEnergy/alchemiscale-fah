@@ -545,7 +545,7 @@ async def execute_DAG(
                 context = Context(shared=shared, scratch=scratch)
                 params = dict(context=context, raise_error=raise_error, **inputs)
 
-                # if this is a FahProtocolUnit, then we await its execution in-process
+                # if this is a FahSimulationUnit, then we await its execution in-process
                 if isinstance(unit, FahSimulationUnit):
                     fah_context = FahContext(
                         shared=shared,
