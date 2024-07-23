@@ -39,7 +39,7 @@ class TestFahAdaptiveSamplingClient:
         project_id = 90001
 
         project_data = ProjectData(
-            core_id=0x23,
+            core_id="0x23",
             contact="lol@no.int",
             atoms=10000,
             credit=5000,
@@ -82,7 +82,7 @@ class TestFahAdaptiveSamplingClient:
         run_id = 0
 
         project_data = ProjectData(
-            core_id=0x23,
+            core_id="0x23",
             contact="lol@no.int",
             atoms=10000,
             credit=5000,
@@ -110,7 +110,7 @@ class TestFahAdaptiveSamplingClient:
         clone_id = 0
 
         project_data = ProjectData(
-            core_id=0x23,
+            core_id="0x23",
             contact="lol@no.int",
             atoms=10000,
             credit=5000,
@@ -137,7 +137,7 @@ class TestFahAdaptiveSamplingClient:
         clone_id = 0
 
         project_data = ProjectData(
-            core_id=0x23,
+            core_id="0x23",
             contact="lol@no.int",
             atoms=10000,
             credit=5000,
@@ -171,7 +171,7 @@ class TestFahAdaptiveSamplingClient:
         clone_id = 0
 
         project_data = ProjectData(
-            core_id=0x23,
+            core_id="0x23",
             contact="lol@no.int",
             atoms=10000,
             credit=5000,
@@ -205,7 +205,7 @@ class TestFahAdaptiveSamplingClient:
         clone_id = 0
 
         project_data = ProjectData(
-            core_id=0x23,
+            core_id="0x23",
             contact="lol@no.int",
             atoms=10000,
             credit=5000,
@@ -234,7 +234,7 @@ class TestFahAdaptiveSamplingClient:
         gen_id = 0
 
         project_data = ProjectData(
-            core_id=0x23,
+            core_id="0x23",
             contact="lol@no.int",
             atoms=10000,
             credit=5000,

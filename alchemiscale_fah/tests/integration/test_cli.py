@@ -89,7 +89,7 @@ def fah_client_preloaded(fah_adaptive_sampling_client):
     nonbonded_settings = NonbondedSettings["PME"]
 
     project_data = ProjectData(
-        core_id=0x23,
+        core_id="0x23",
         contact="lol@no.int",
         atoms=n_atoms,
         credit=5000,

@@ -167,10 +167,6 @@ def create_project(
         core_type=FahCoreType[core_type],
     )
 
-    # index = FahComputeServiceIndex(index_file)
-    # index.set_project(project_id, fah_project)
-    # index.db.close()
-
     # add file to PROJECT dir that can be used to rebuild index
     fahc.create_project_file_from_bytes(
         project_id, fah_project.json().encode("utf-8"), "alchemiscale-project.txt"

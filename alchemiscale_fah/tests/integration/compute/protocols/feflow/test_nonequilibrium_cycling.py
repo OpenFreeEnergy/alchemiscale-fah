@@ -29,7 +29,7 @@ def fah_client_preloaded(fah_adaptive_sampling_client):
     project_id = 90001
 
     project_data = ProjectData(
-        core_id=0x23,
+        core_id="0x23",
         contact="lol@no.int",
         atoms=10000,
         credit=5000,
