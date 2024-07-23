@@ -39,14 +39,18 @@ class FahComputeServiceIndex:
         self.obj_store = Path(obj_store).absolute()
         self.obj_store.mkdir(parents=True, exist_ok=True)
 
-    def set_project(self, project_id: str, fah_project: FahProject):
+    def set_project(self, project_id: int, fah_project: FahProject):
         """Set the metadata for the given PROJECT."""
+
+        if not isinstance(project_id, int):
+            raise ValueError("`project_id` must be an integer")
+
         key = f"projects/{project_id}".encode("utf-8")
         value = fah_project.json().encode("utf-8")
 
         self.db.put(key, value)
 
-    def get_project(self, project_id: str) -> FahProject:
+    def get_project(self, project_id: int) -> FahProject:
         """Get metadata for the given PROJECT."""
         key = f"projects/{project_id}".encode("utf-8")
         value = self.db.get(key)
@@ -56,7 +60,7 @@ class FahComputeServiceIndex:
 
         return value
 
-    def get_project_run_next(self, project_id: str) -> FahProject:
+    def get_project_run_next(self, project_id: int) -> FahProject:
         """Get next available RUN id for the given PROJECT."""
         prefix = f"runs/{project_id}-".encode("utf-8")
         run_ids = sorted(
@@ -67,16 +71,19 @@ class FahComputeServiceIndex:
         )
 
         if run_ids:
-            return str(run_ids[-1] + 1)
+            return run_ids[-1] + 1
         else:
-            return "0"
+            return 0
 
-    def set_run(self, project_id: str, run_id: str, fah_run: FahRun):
+    def set_run(self, project_id: int, run_id: int, fah_run: FahRun):
         """Set the metadata for the given RUN.
 
         Also sets the metadata for the corresponding Transformation.
 
         """
+        if not (isinstance(project_id, int) and isinstance(run_id, int)):
+            raise ValueError("`project_id` and `run_id` must be integers")
+
         with self.db.write_batch(transaction=True) as wb:
             key = f"runs/{project_id}-{run_id}".encode("utf-8")
             value = fah_run.json().encode("utf-8")
@@ -88,7 +95,7 @@ class FahComputeServiceIndex:
 
             wb.put(key, value)
 
-    def get_run(self, project_id: str, run_id: str) -> FahRun:
+    def get_run(self, project_id: int, run_id: int) -> FahRun:
         """Get metadata for the given RUN."""
         key = f"runs/{project_id}-{run_id}".encode("utf-8")
         value = self.db.get(key)
@@ -98,7 +105,7 @@ class FahComputeServiceIndex:
 
         return value
 
-    def get_run_clone_next(self, project_id: str, run_id: str) -> FahRun:
+    def get_run_clone_next(self, project_id: int, run_id: int) -> int:
         """Get next available CLONE id for the given RUN."""
         prefix = f"clones/{project_id}-{run_id}-".encode("utf-8")
         clone_ids = sorted(
@@ -109,18 +116,25 @@ class FahComputeServiceIndex:
         )
 
         if clone_ids:
-            return str(clone_ids[-1] + 1)
+            return clone_ids[-1] + 1
         else:
-            return "0"
+            return 0
 
     def set_clone(
-        self, project_id: str, run_id: str, clone_id: str, fah_clone: FahClone
+        self, project_id: int, run_id: int, clone_id: int, fah_clone: FahClone
     ):
         """Set the metadata for the given CLONE.
 
         Also sets the metadata for the corresponding Task-ProtocolUnit.
 
         """
+        if not (
+            isinstance(project_id, int)
+            and isinstance(run_id, int)
+            and isinstance(clone_id, int)
+        ):
+            raise ValueError("`project_id`, `run_id`, and `clone_id` must be integers")
+
         with self.db.write_batch(transaction=True) as wb:
             key = f"clones/{project_id}-{run_id}-{clone_id}".encode("utf-8")
             value = fah_clone.json().encode("utf-8")
@@ -134,7 +148,7 @@ class FahComputeServiceIndex:
 
             wb.put(key, value)
 
-    def get_clone(self, project_id: str, run_id: str, clone_id: str) -> FahClone:
+    def get_clone(self, project_id: int, run_id: int, clone_id: int) -> FahClone:
         """Get metadata for the given CLONE."""
         key = f"clones/{project_id}-{run_id}-{clone_id}".encode("utf-8")
         value = self.db.get(key)
@@ -144,12 +158,15 @@ class FahComputeServiceIndex:
 
         return value
 
-    def set_transformation(self, transformation: GufeKey, project_id: str, run_id: str):
+    def set_transformation(self, transformation: GufeKey, project_id: int, run_id: int):
         """Set the PROJECT and RUN used for the given Transformation.
 
         Also sets the metadata for the corresponding RUN.
 
         """
+        if not (isinstance(project_id, int) and isinstance(run_id, int)):
+            raise ValueError("`project_id` and `run_id` must be integers")
+
         with self.db.write_batch(transaction=True) as wb:
             key = f"transformations/{transformation}".encode("utf-8")
             value = f"{project_id}-{run_id}".encode("utf-8")
@@ -171,13 +188,13 @@ class FahComputeServiceIndex:
 
     def get_transformation(
         self, transformation: GufeKey
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> Tuple[Optional[int], Optional[int]]:
         """Get the PROJECT and RUN used for the given Transformation, if already present."""
         key = f"transformations/{transformation}".encode("utf-8")
         value = self.db.get(key)
 
         if value is not None:
-            value = value.decode("utf-8").split("-")
+            value = tuple(int(i) for i in value.decode("utf-8").split("-"))
         else:
             value = (None, None)
 
@@ -187,15 +204,22 @@ class FahComputeServiceIndex:
         self,
         task: ScopedKey,
         protocolunit: GufeKey,
-        project_id: str,
-        run_id: str,
-        clone_id: str,
+        project_id: int,
+        run_id: int,
+        clone_id: int,
     ):
         """Set the PROJECT, RUN, and CLONE used for the given Task-ProtocolUnit.
 
         Also sets the metadata for the corresponding CLONE.
 
         """
+        if not (
+            isinstance(project_id, int)
+            and isinstance(run_id, int)
+            and isinstance(clone_id, int)
+        ):
+            raise ValueError("`project_id`, `run_id`, and `clone_id` must be integers")
+
         with self.db.write_batch(transaction=True) as wb:
             key = f"tasks/{task}/protocolunits/{protocolunit}".encode("utf-8")
             value = f"{project_id}-{run_id}-{clone_id}".encode("utf-8")
@@ -221,13 +245,13 @@ class FahComputeServiceIndex:
         self,
         task: ScopedKey,
         protocolunit: GufeKey,
-    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> Tuple[Optional[int], Optional[int], Optional[int]]:
         """Get the PROJECT, RUN, and CLONE used for the given Task-ProtocolUnit, if already present."""
         key = f"tasks/{task}/protocolunits/{protocolunit}".encode("utf-8")
         value = self.db.get(key)
 
         if value is not None:
-            value = value.decode("utf-8").split("-")
+            value = tuple(int(i) for i in value.decode("utf-8").split("-"))
         else:
             value = (None, None, None)
 

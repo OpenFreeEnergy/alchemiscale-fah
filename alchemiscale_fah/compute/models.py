@@ -1,10 +1,17 @@
-from enum import Enum, auto
+from enum import StrEnum
 from typing import Optional
 from ipaddress import IPv4Address
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field, validator
+from pydantic import (
+    BaseModel,
+    Field,
+    validator,
+    NonNegativeInt,
+    PositiveInt,
+    PositiveFloat,
+)
 
 from alchemiscale.models import ScopedKey
 from ..utils import NonbondedSettings
@@ -13,7 +20,7 @@ from ..utils import NonbondedSettings
 # FahAdaptiveSamplingClient models
 
 
-class CompressionTypeEnum(Enum):
+class CompressionTypeEnum(StrEnum):
     NONE = "NONE"
     BZIP2 = "BZIP2"
     ZLIB = "ZLIB"
@@ -44,15 +51,17 @@ class ProjectData(FahAdaptiveSamplingModel):
     contact: str = Field(
         ..., description="Email of the person responsible for the project."
     )
-    runs: int = Field(0, description="The number of runs.")
-    clones: int = Field(0, description="The number of clones.")
-    gens: int = Field(1, description="Maximum number of generations per job.")
-    atoms: int = Field(
+    runs: NonNegativeInt = Field(0, description="The number of runs.")
+    clones: NonNegativeInt = Field(0, description="The number of clones.")
+    gens: PositiveInt = Field(1, description="Maximum number of generations per job.")
+    atoms: PositiveInt = Field(
         ..., description="Approximate number of atoms in the simulations."
     )
-    credit: int = Field(..., description="The base credit awarded for the WU.")
-    timeout: float = Field(86400.0, description="Days before the WU can be reassigned.")
-    deadline: float = Field(
+    credit: PositiveInt = Field(..., description="The base credit awarded for the WU.")
+    timeout: PositiveFloat = Field(
+        86400.0, description="Days before the WU can be reassigned."
+    )
+    deadline: PositiveFloat = Field(
         172800.0, description="Days in which the WU can be returned for credit."
     )
     compression: CompressionTypeEnum = Field(
@@ -79,21 +88,21 @@ class JobData(FahAdaptiveSamplingModel):
     core: Optional[int] = Field(
         None, description="ID for core that executed this job, as base-10 integer."
     )
-    project: int = Field(..., description="The project ID.")
-    run: int = Field(..., description="The job run.")
-    clone: int = Field(..., description="The job clone.")
-    gen: int = Field(..., description="The latest job generation.")
+    project: NonNegativeInt = Field(..., description="The project ID.")
+    run: NonNegativeInt = Field(..., description="The job run.")
+    clone: NonNegativeInt = Field(..., description="The job clone.")
+    gen: NonNegativeInt = Field(..., description="The latest job generation.")
     state: JobStateEnum = Field(..., description="The current job state.")
     last: Optional[datetime] = Field(
         None, description="Last time the job state changed."
     )
-    retries: Optional[int] = Field(
+    retries: Optional[NonNegativeInt] = Field(
         None, description="Number of times the job has been retried."
     )
-    assigns: Optional[int] = Field(
+    assigns: Optional[NonNegativeInt] = Field(
         None, description="Number of times the job has been assigned."
     )
-    progress: Optional[int] = Field(None, description="Job progress.")
+    progress: Optional[NonNegativeInt] = Field(None, description="Job progress.")
 
     @validator("core", pre=True, always=True)
     def validate_core(cls, v, values, **kwargs):
@@ -115,7 +124,7 @@ class FileData(FahAdaptiveSamplingModel):
     path: str = Field(
         ..., description="File path relative to the project, job or gen directory."
     )
-    size: int = Field(..., description="The file size in bytes.")
+    size: NonNegativeInt = Field(..., description="The file size in bytes.")
     modified: datetime = Field(..., description="The file modification time.")
 
 
@@ -144,28 +153,28 @@ class ASProjectData(FahAdaptiveSamplingModel):
 # FahAsynchronousComputeService models
 
 
-class FahCoreType(Enum):
+class FahCoreType(StrEnum):
     openmm = "openmm"
     gromacs = "gromacs"
 
 
 # TODO: documentation
 class FahProject(BaseModel):
-    project_id: str
-    n_atoms: int
+    project_id: NonNegativeInt
+    n_atoms: PositiveInt
     nonbonded_settings: NonbondedSettings
     core_type: FahCoreType
 
 
 class FahRun(BaseModel):
-    project_id: str
-    run_id: str
+    project_id: NonNegativeInt
+    run_id: NonNegativeInt
     transformation_key: str
 
 
 class FahClone(BaseModel):
-    project_id: str
-    run_id: str
-    clone_id: str
+    project_id: NonNegativeInt
+    run_id: NonNegativeInt
+    clone_id: NonNegativeInt
     task_sk: ScopedKey
     protocolunit_key: str
