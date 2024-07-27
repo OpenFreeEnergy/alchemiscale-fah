@@ -14,4 +14,4 @@ dependencies:
 
   - pip:
     - git+https://github.com/choderalab/feflow.git
-    - git+https://github.com/openforcefield/alchemiscale.git@v0.5.0-beta.1  # temporary for testing
+    - git+https://github.com/openforcefield/alchemiscale.git@release-0.5.0-prep  # temporary for testing
