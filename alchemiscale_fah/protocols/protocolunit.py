@@ -287,7 +287,11 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # read in results from `globals.csv`
         globals_csv = ctx.fah_client.get_gen_output_file_to_bytes(
-            project_id, run_id, clone_id, 0, protocol.settings.fah_settings.globalVarFilename
+            project_id,
+            run_id,
+            clone_id,
+            0,
+            protocol.settings.fah_settings.globalVarFilename,
         )
 
         outputs = self.postprocess_globals(globals_csv, ctx)
