@@ -1,0 +1,16 @@
+name: alchemiscale-fah-server
+channels:
+  - conda-forge
+dependencies:
+  - pip
+  - python =3.11
+
+  - alchemiscale-server
+
+  # alchemiscale-fah dependencies
+  - cryptography
+  - plyvel
+  - zstandard
+
+  - pip:
+    - git+https://github.com/choderalab/feflow.git
