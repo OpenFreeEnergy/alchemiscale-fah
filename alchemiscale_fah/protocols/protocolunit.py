@@ -172,7 +172,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         self, globals_csv_content: bytes, ctx: FahContext
     ) -> dict[str, Any]: ...
 
-    async def _execute(self, ctx: FahContext, *, setup, settings, **inputs):
+    async def _execute(self, ctx: FahContext, *, protocol, setup, **inputs):
         # take serialized system, state, integrator from SetupUnit
         system_file = setup.outputs["system"]
         state_file = setup.outputs["state"]
@@ -202,7 +202,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         if project_id is None and run_id is None:
             # select PROJECT to use for execution
             project_id = self.select_project(
-                n_atoms, ctx.fah_projects, settings
+                n_atoms, ctx.fah_projects, protocol.settings
             ).project_id
 
             # get next available RUN id
@@ -225,7 +225,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         # new CLONE
         if clone_id is None:
             # create core file from settings
-            core_file_content = self.generate_core_settings_file(settings)
+            core_file_content = self.generate_core_settings_file(protocol.settings)
 
             # get next available CLONE id
             clone_id = ctx.index.get_run_clone_next(project_id, run_id)
@@ -287,7 +287,7 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
         # read in results from `globals.csv`
         globals_csv = ctx.fah_client.get_gen_output_file_to_bytes(
-            project_id, run_id, clone_id, 0, settings.fah_settings.globalVarFilename
+            project_id, run_id, clone_id, 0, protocol.settings.fah_settings.globalVarFilename
         )
 
         outputs = self.postprocess_globals(globals_csv, ctx)
