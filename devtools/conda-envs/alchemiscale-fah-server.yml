@@ -1,11 +1,11 @@
-name: alchemiscale-fah-compute
+name: alchemiscale-fah-server
 channels:
   - conda-forge
 dependencies:
   - pip
   - python =3.11
 
-  - alchemiscale-compute
+  - alchemiscale-server
 
   # alchemiscale-fah dependencies
   - cryptography
