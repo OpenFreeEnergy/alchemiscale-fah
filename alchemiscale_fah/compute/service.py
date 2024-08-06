@@ -181,15 +181,13 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         Returns ScopedKey of ProtocolDAGResultRef following push to database.
 
         """
+        tf_sk = self.client.get_task_transformation(task)
+
         # check if Task seen before, serialized ProtocolDAG present
         # use that ProtocolDAG instead and feed to `execute_DAG`
         protocoldag = self.index.get_task_protocoldag(task)
 
         if protocoldag is None:
-            # check if we have seen this Transformation before
-            # get PROJECT, RUN if so
-            tf_sk = self.client.get_task_transformation(task)
-
             # obtain a ProtocolDAG from the task
             self.logger.info("Creating ProtocolDAG from '%s'...", task)
             protocoldag, transformation, extends = self.task_to_protocoldag(task)
