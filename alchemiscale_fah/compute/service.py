@@ -635,9 +635,9 @@ async def execute_DAG(
                 project_id, run_id, clone_id = index.get_task_protocolunit(
                     task_sk, unit.key
                 )
-                complete_marker = str({"completed": datetime.utcnow().isoformat()}).encode(
-                    "utf-8"
-                )
+                complete_marker = str(
+                    {"completed": datetime.utcnow().isoformat()}
+                ).encode("utf-8")
 
                 fah_client.create_clone_file_from_bytes(
                     project_id,
