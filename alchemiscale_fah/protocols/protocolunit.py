@@ -269,6 +269,14 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                 ctx.task_sk, self.key, project_id, run_id, clone_id
             )
             ctx.fah_client.create_clone(project_id, run_id, clone_id)
+        else:
+            # if we have a CLONE ID, it means that we have seen this
+            # Task-ProtocolUnit before; we check its status, and if it is in a
+            # failed state, then we restart it
+            jobdata = ctx.fah_client.get_clone(project_id, run_id, clone_id)
+
+            if JobStateEnum[jobdata.state] is JobStateEnum.FAILED:
+                ctx.fah_client.restart_clone(project_id, run_id, clone_id)
 
         while True:
             # check for and await sleep results from work server
