@@ -374,6 +374,12 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             self.logger.info("Caught SIGINT/Keyboard interrupt.")
         except SleepInterrupted:
             self.logger.info("Service stopping.")
+        except Exception as e:
+            self.logger.error(
+                "Service encountered an error: '%s : %s'",
+                e.__class_.__qualname__,
+                str(e.args),
+            )
         finally:
             self.cycle_terminate()
 
