@@ -399,7 +399,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self._start_time = time.time()
 
         # create process pool
-        self._pool = ProcessPoolExecutor()
+        self._pool = ProcessPoolExecutor(self.settings.max_processpool_workers)
 
         # open index
         self.index = FahComputeServiceIndex(self.index_dir, self.obj_store)

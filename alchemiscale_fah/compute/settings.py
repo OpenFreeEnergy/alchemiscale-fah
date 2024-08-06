@@ -9,6 +9,12 @@ from alchemiscale.compute.settings import ComputeServiceSettings
 class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
     """Settings schema for a FahSynchronousComputeService."""
 
+    # Maximum number of workers to allocate to the service's process pool
+    max_processpool_workers: Optional[int] = Field(
+        None,
+        description="Maximum number of workers to allocate to the service's process pool; `None` will default to number of processors on host.",
+    )
+
     fah_as_url: str = Field(
         ...,
         description="URL of the FAH assignment server to use.",
