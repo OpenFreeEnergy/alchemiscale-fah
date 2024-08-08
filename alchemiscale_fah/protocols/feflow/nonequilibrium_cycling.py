@@ -138,6 +138,8 @@ class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
 
         base_settings = super(FahNonEquilibriumCyclingProtocol, cls)._default_settings()
 
+        #base_settings.defer_minimization = True
+
         return FahNonEquilibriumCyclingSettings(
             fah_settings=FahOpenMMCoreSettings(), **dict(base_settings)
         )

@@ -178,10 +178,6 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         state_file = setup.outputs["state"]
         integrator_file = setup.outputs["integrator"]
 
-        # read in system; count atoms
-        system = deserialize(system_file)
-        n_atoms = system.getNumParticles()
-
         # identify if this Task-ProtocolUnit has an existing PROJECT,RUN,CLONE
         # associated with it
         project_id, run_id, clone_id = ctx.index.get_task_protocolunit(
@@ -200,6 +196,11 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         # choose a PROJECT for this Transformation and create a RUN for it;
         # also need to create a CLONE for this Task-ProtocolUnit
         if project_id is None and run_id is None:
+
+            # read in system; count atoms
+            system = deserialize(system_file)
+            n_atoms = system.getNumParticles()
+
             # select PROJECT to use for execution
             project_id = self.select_project(
                 n_atoms, ctx.fah_projects, protocol.settings
