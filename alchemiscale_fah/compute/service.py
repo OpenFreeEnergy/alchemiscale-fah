@@ -516,103 +516,101 @@ async def execute_DAG(
     # iterate in DAG order
     results: dict[GufeKey, ProtocolUnitResult] = {}
     all_results = []  # successes AND failures
-    shared_paths = []
+    successful_shared_paths = []
+    failed_shared_paths = []
     for unit in protocoldag.protocol_units:
         # for each unit, check that results already exist; if so, use these
         # and skip forward
         result = index.get_protocolunit_result(unit.key)
-
         if result is not None:
             results[unit.key] = result
             all_results.append(result)
-        else:
+            continue
 
-            # translate each `ProtocolUnit` in input into corresponding
-            # `ProtocolUnitResult`
-            inputs = _pu_to_pur(unit.inputs, results)
+        # translate each `ProtocolUnit` in input into corresponding
+        # `ProtocolUnitResult`
+        inputs = _pu_to_pur(unit.inputs, results)
 
-            attempt = 0
-            while attempt <= n_retries:
-                shared = shared_basedir / f"shared_{str(unit.key)}_attempt_{attempt}"
+        attempt = 0
+        while attempt <= n_retries:
+            shared = shared_basedir / f"shared_{str(unit.key)}_attempt_{attempt}"
 
-                # if we partially executed a ProtocolUnit, but didn't complete it,
-                # start with a fresh shared directory
-                if shared.exists():
-                    shutil.rmtree(shared)
+            # if we partially executed a ProtocolUnit, but didn't complete it,
+            # start with a fresh shared directory
+            if shared.exists():
+                shutil.rmtree(shared)
 
-                shared_paths.append(shared)
-                shared.mkdir()
+            shared.mkdir()
 
-                scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
+            scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
 
-                # if we partially executed a ProtocolUnit, but didn't complete it,
-                # start with a fresh scratch directory
-                if scratch.exists():
-                    shutil.rmtree(scratch)
+            # if we partially executed a ProtocolUnit, but didn't complete it,
+            # start with a fresh scratch directory
+            if scratch.exists():
+                shutil.rmtree(scratch)
 
-                scratch.mkdir()
+            scratch.mkdir()
 
-                context = Context(shared=shared, scratch=scratch)
-                params = dict(context=context, raise_error=raise_error, **inputs)
+            context = Context(shared=shared, scratch=scratch)
+            params = dict(context=context, raise_error=raise_error, **inputs)
 
-                # if this is a FahSimulationUnit, then we await its execution in-process
-                if isinstance(unit, FahSimulationUnit):
-                    fah_context = FahContext(
-                        shared=shared,
-                        scratch=scratch,
-                        fah_client=fah_client,
-                        fah_projects=fah_projects,
-                        transformation_sk=transformation_sk,
-                        task_sk=task_sk,
-                        index=index,
-                        fah_poll_interval=fah_poll_interval,
-                        encryption_public_key=encryption_public_key,
-                    )
+            # if this is a FahSimulationUnit, then we await its execution in-process
+            if isinstance(unit, FahSimulationUnit):
+                fah_context = FahContext(
+                    shared=shared,
+                    scratch=scratch,
+                    fah_client=fah_client,
+                    fah_projects=fah_projects,
+                    transformation_sk=transformation_sk,
+                    task_sk=task_sk,
+                    index=index,
+                    fah_poll_interval=fah_poll_interval,
+                    encryption_public_key=encryption_public_key,
+                )
 
-                    result = await unit.execute(
-                        context=fah_context, raise_error=raise_error, **inputs
-                    )
-                else:
-                    # otherwise, execute with process pool, allowing CPU bound
-                    # units to parallelize across multiple tasks being executed
-                    # at once
+                result = await unit.execute(
+                    context=fah_context, raise_error=raise_error, **inputs
+                )
+            else:
+                # otherwise, execute with process pool, allowing CPU bound
+                # units to parallelize across multiple tasks being executed
+                # at once
 
-                    # TODO instead of immediately `await`ing here, we could build
-                    # up a task for each ProtocolUnit whose deps are satisfied, and
-                    # only proceed with additional ones as their deps are satisfied;
-                    # would require restructuring this whole method around that
-                    # approach, in particular handling retries
-                    result = await loop.run_in_executor(
-                        pool,
-                        execute_unit,
-                        json.dumps(
-                            KeyedChain.gufe_to_keyed_chain_rep(unit),
-                            cls=JSON_HANDLER.encoder,
-                        ),
-                        params,
-                    )
+                # TODO instead of immediately `await`ing here, we could build
+                # up a task for each ProtocolUnit whose deps are satisfied, and
+                # only proceed with additional ones as their deps are satisfied;
+                # would require restructuring this whole method around that
+                # approach, in particular handling retries
+                result = await loop.run_in_executor(
+                    pool,
+                    execute_unit,
+                    json.dumps(
+                        KeyedChain.gufe_to_keyed_chain_rep(unit),
+                        cls=JSON_HANDLER.encoder,
+                    ),
+                    params,
+                )
 
-                all_results.append(result)
+            all_results.append(result)
 
-                if not keep_scratch:
-                    shutil.rmtree(scratch)
+            if not keep_scratch:
+                shutil.rmtree(scratch)
 
-                if result.ok():
-                    # attach result to this `ProtocolUnit`
-                    results[unit.key] = result
+            if result.ok():
+                # attach result to this `ProtocolUnit`
+                results[unit.key] = result
 
-                    # hold on to ProtocolUnitResult so the DAG can be replayed if needed
-                    index.set_protocolunit_result(unit.key, result)
+                # hold on to ProtocolUnitResult so the DAG can be replayed if needed
+                index.set_protocolunit_result(unit.key, result)
+                successful_shared_paths.append(shared)
 
-                    break
-                attempt += 1
+                break
+
+            failed_shared_paths.append(shared)
+            attempt += 1
 
         if not result.ok():
             break
-
-    if not keep_shared:
-        for shared_path in shared_paths:
-            shutil.rmtree(shared_path)
 
     pdr = ProtocolDAGResult(
         name=protocoldag.name,
@@ -622,9 +620,21 @@ async def execute_DAG(
         extends_key=protocoldag.extends_key,
     )
 
+    # clean up failed shared directories, since these aren't used for replays
+    if not keep_shared:
+        for shared_path in failed_shared_paths:
+            shutil.rmtree(shared_path)
+
     # only if we successfully completed the ProtocolDAG, clean up index and
     # drop marker files for FAH cleanup
     if pdr.ok():
+
+        # clean up successful shared directories, since we no longer need them
+        # for replays
+        if not keep_shared:
+            for shared_path in successful_shared_paths:
+                shutil.rmtree(shared_path)
+
         # clean up protocolunitresults from index object state store
         for unit in pdr.protocol_units:
             index.del_protocolunit_result(unit.key)
