@@ -24,10 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ['alchemiscale-fah-server', 'alchemiscale-fah-compute']
+        image: ['alchemiscale-fah-compute']
         include:
-          - image: 'alchemiscale-fah-server'
-            dockerfile: 'docker/alchemiscale-fah-server/Dockerfile'
           - image: 'alchemiscale-fah-compute'
             dockerfile: 'docker/alchemiscale-fah-compute/Dockerfile'
     permissions:

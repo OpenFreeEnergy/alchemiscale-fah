@@ -78,6 +78,10 @@ init:
 
   ## FAH-specific settings
 
+  # Maximum number of workers to allocate to the service's process pool;
+  # `null` will default to number of processors on host.
+  max_processpool_workers: null
+
   # URL of the FAH assignment server to use.
   fah_as_url: "https://assign1.foldingathome.org"
 
