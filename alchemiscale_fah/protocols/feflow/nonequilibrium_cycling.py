@@ -80,7 +80,7 @@ class FahNonEquilibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
         with BytesIO(globals_csv_content) as f:
             df = pd.read_csv(f, header=header_line_number)
 
-        df = df[["lambda", "protocol_work"]]
+        df = df[["lambda", "protocol_work", "kT"]]
 
         forward_works = []
         reverse_works = []
@@ -91,8 +91,10 @@ class FahNonEquilibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
         for i, row in df.iterrows():
             if prev_lambda is None:
                 prev_lambda = row["lambda"]
-                prev_work = row["protocol_work"]
+                prev_work = row["protocol_work"] / row["kT"]
                 continue
+
+            current_work = row["protocol_work"] / row["kT"]
 
             if np.isclose(row["lambda"], prev_lambda) and np.isclose(prev_lambda, 0):
                 mode = "A"
@@ -100,17 +102,17 @@ class FahNonEquilibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
                 if mode == "A":
                     forward_works.append(prev_work)
                 mode = "A->B"
-                forward_works.append(row["protocol_work"])
+                forward_works.append(current_work)
             elif np.isclose(row["lambda"], prev_lambda) and np.isclose(prev_lambda, 1):
                 mode = "B"
             elif (row["lambda"] - prev_lambda) < 0:
                 if mode == "B":
                     reverse_works.append(prev_work)
                 mode = "B->A"
-                reverse_works.append(row["protocol_work"])
+                reverse_works.append(current_work)
 
             prev_lambda = row["lambda"]
-            prev_work = row["protocol_work"]
+            prev_work = current_work
 
         forward_work_path = ctx.shared / f"forward_{self.name}.npy"
         reverse_work_path = ctx.shared / f"reverse_{self.name}.npy"
