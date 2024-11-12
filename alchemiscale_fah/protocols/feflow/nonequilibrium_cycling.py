@@ -15,6 +15,7 @@ from gufe.settings import Settings
 from openff.units import unit
 from feflow.protocols.nonequilibrium_cycling import NonEquilibriumCyclingProtocol
 
+from .settings import FahNonEquilibriumCyclingSettings
 from ..protocolunit import FahOpenMMSimulationUnit, FahContext
 from ...settings.fah_settings import FahOpenMMCoreSettings
 
@@ -131,16 +132,27 @@ class FahNonEquilibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
 class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
     _simulation_unit = FahNonEquilibriumCyclingSimulationUnit
 
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: FahNonEquilibriumCyclingSettings):
         super().__init__(settings)
+
+        # perform some sanity checks on settings
+        if settings.fah_settings.numSteps != (
+            2 * settings.integrator_settings.equilibrium_steps
+            + 2 * settings.integrator_settings.nonequilibrium_steps
+        ):
+            raise ValueError(
+                "`fah_settings.numSteps` must equal `2 * integrator_settings.equilibrium_steps + 2 * integrator_settings.nonequilibrium_steps`"
+            )
 
     @classmethod
     def _default_settings(cls):
-        from .settings import FahNonEquilibriumCyclingSettings
 
         base_settings = super(FahNonEquilibriumCyclingProtocol, cls)._default_settings()
 
-        # base_settings.defer_minimization = True
+        base_settings.integrator_settings.equilibrium_steps = 250000
+        base_settings.integrator_settings.nonequilibrium_steps = 250000
+
+        fah_openmm_core_settings = FahOpenMMCoreSettings()
 
         return FahNonEquilibriumCyclingSettings(
             fah_settings=FahOpenMMCoreSettings(), **dict(base_settings)

@@ -7,11 +7,11 @@ from gufe.settings import SettingsBaseModel
 class FahOpenMMCoreSettings(SettingsBaseModel):
     # required
     numSteps: int = Field(
-        2500000,
+        1000000,
         description="Total number of steps for FahSimulationUnit; aim to keep execution to just a few hours.",
     )
     xtcFreq: int = Field(
-        250000,
+        100000,
         description="Number of steps to wait before writing a snapshot to the XTC trajectory file; 10 - 40 snapshots usually sufficient.",
     )
 
@@ -26,7 +26,7 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         description="Interval at which JSON viewer frame is to be written (default: -1 [1%])",
     )
     globalVarFreq: int = Field(
-        2500, description="Interval at which global variables are to be written"
+        1000, description="Interval at which global variables are to be written"
     )
 
     ## other
