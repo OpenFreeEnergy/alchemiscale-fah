@@ -209,6 +209,10 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
             # get next available RUN id
             run_id = ctx.index.get_project_run_next(project_id)
 
+            # if we are beyond the highest possible RUN id, then halt
+            if run_id > 65535:
+                raise KeyboardInterrupt(f"Exhausted RUN ids for PROJECT {project_id}")
+
             # create RUN for this Transformation
             ctx.fah_client.create_run_file_from_bytes(
                 project_id,
@@ -230,6 +234,12 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
             # get next available CLONE id
             clone_id = ctx.index.get_run_clone_next(project_id, run_id)
+
+            # if we are beyond the highest possible CLONE id, then halt
+            if clone_id > 65535:
+                raise KeyboardInterrupt(
+                    f"Exhausted CLONE ids for PROJECT {project_id}, RUN {run_id}"
+                )
 
             # create CLONE for this Task
             ctx.fah_client.create_clone_file_from_bytes(

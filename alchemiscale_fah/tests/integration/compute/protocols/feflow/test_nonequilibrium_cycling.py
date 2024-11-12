@@ -68,6 +68,7 @@ class TestFahNonEquilibriumCyclingProtocol:
             n_atoms=10000,
             nonbonded_settings="PME",
             core_type=FahCoreType["openmm"],
+            core_id="0x23",
         )
 
         t_sk = ScopedKey(
