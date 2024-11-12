@@ -9,6 +9,12 @@ from alchemiscale.compute.settings import ComputeServiceSettings
 class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
     """Settings schema for a FahSynchronousComputeService."""
 
+    # Maximum number of workers to allocate to the service's process pool
+    max_processpool_workers: Optional[int] = Field(
+        None,
+        description="Maximum number of workers to allocate to the service's process pool; `None` will default to number of processors on host.",
+    )
+
     fah_as_url: str = Field(
         ...,
         description="URL of the FAH assignment server to use.",
@@ -52,4 +58,8 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
     fah_poll_interval: int = Field(
         60,
         description="Frequency in seconds between polls of FAH WS API for completed jobs.",
+    )
+    fah_core_ids_supported: List[str] = Field(
+        ...,
+        description="List of supported core IDs in hex (base 16) format.  E.g. 0xa8.",
     )

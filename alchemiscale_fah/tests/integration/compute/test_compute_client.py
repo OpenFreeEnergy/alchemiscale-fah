@@ -78,6 +78,7 @@ class TestFahAdaptiveSamplingClient:
             n_atoms=10000,
             nonbonded_settings="NoCutoff",
             core_type=FahCoreType["openmm"],
+            core_id="0x23",
         )
 
         project_file = "alchemiscale-project.txt"

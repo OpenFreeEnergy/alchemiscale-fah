@@ -89,7 +89,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         )
 
         # get PROJECT data from metadata files in each PROJECT
-        self.fah_projects = [
+        self.fah_projects: list[FahProject] = [
             FahProject.parse_raw(
                 self.fah_client.get_project_file_to_bytes(
                     p, "alchemiscale-project.txt"
@@ -97,6 +97,14 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             )
             for p in self.fah_project_ids
         ]
+
+        # halt immediately if any project features a core id that is not supported
+        for fah_project in self.fah_projects:
+            if fah_project.core_id not in settings.fah_core_ids_supported:
+                raise ValueError(
+                    f"FAH project '{fah_project.project_id}' configured with unsupported core id '{fah_project.core_id}'; "
+                    f"check `settings.fah_core_ids_supported` for allowed core ids"
+                )
 
         self.fah_cert_update_interval = settings.fah_cert_update_interval
 
@@ -181,15 +189,13 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         Returns ScopedKey of ProtocolDAGResultRef following push to database.
 
         """
+        tf_sk = self.client.get_task_transformation(task)
+
         # check if Task seen before, serialized ProtocolDAG present
         # use that ProtocolDAG instead and feed to `execute_DAG`
         protocoldag = self.index.get_task_protocoldag(task)
 
         if protocoldag is None:
-            # check if we have seen this Transformation before
-            # get PROJECT, RUN if so
-            tf_sk = self.client.get_task_transformation(task)
-
             # obtain a ProtocolDAG from the task
             self.logger.info("Creating ProtocolDAG from '%s'...", task)
             protocoldag, transformation, extends = self.task_to_protocoldag(task)
@@ -376,6 +382,12 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             self.logger.info("Caught SIGINT/Keyboard interrupt.")
         except SleepInterrupted:
             self.logger.info("Service stopping.")
+        except Exception as e:
+            self.logger.error(
+                "Service encountered an error: '%s : %s'",
+                e.__class_.__qualname__,
+                str(e.args),
+            )
         finally:
             self.cycle_terminate()
 
@@ -399,7 +411,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self._start_time = time.time()
 
         # create process pool
-        self._pool = ProcessPoolExecutor()
+        self._pool = ProcessPoolExecutor(self.settings.max_processpool_workers)
 
         # open index
         self.index = FahComputeServiceIndex(self.index_dir, self.obj_store)
@@ -512,137 +524,152 @@ async def execute_DAG(
     # iterate in DAG order
     results: dict[GufeKey, ProtocolUnitResult] = {}
     all_results = []  # successes AND failures
-    shared_paths = []
+    successful_shared_paths = []
+    failed_shared_paths = []
     for unit in protocoldag.protocol_units:
         # for each unit, check that results already exist; if so, use these
         # and skip forward
         result = index.get_protocolunit_result(unit.key)
-
         if result is not None:
             results[unit.key] = result
             all_results.append(result)
-        else:
+            continue
 
-            # translate each `ProtocolUnit` in input into corresponding
-            # `ProtocolUnitResult`
-            inputs = _pu_to_pur(unit.inputs, results)
+        # translate each `ProtocolUnit` in input into corresponding
+        # `ProtocolUnitResult`
+        inputs = _pu_to_pur(unit.inputs, results)
 
-            attempt = 0
-            while attempt <= n_retries:
-                shared = shared_basedir / f"shared_{str(unit.key)}_attempt_{attempt}"
+        attempt = 0
+        while attempt <= n_retries:
+            shared = shared_basedir / f"shared_{str(unit.key)}_attempt_{attempt}"
 
-                # if we partially executed a ProtocolUnit, but didn't complete it,
-                # start with a fresh shared directory
-                if shared.exists():
-                    shutil.rmtree(shared)
+            # if we partially executed a ProtocolUnit, but didn't complete it,
+            # start with a fresh shared directory
+            if shared.exists():
+                shutil.rmtree(shared)
 
-                shared_paths.append(shared)
-                shared.mkdir()
+            shared.mkdir()
 
-                scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
+            scratch = scratch_basedir / f"scratch_{str(unit.key)}_attempt_{attempt}"
 
-                # if we partially executed a ProtocolUnit, but didn't complete it,
-                # start with a fresh scratch directory
-                if scratch.exists():
-                    shutil.rmtree(scratch)
+            # if we partially executed a ProtocolUnit, but didn't complete it,
+            # start with a fresh scratch directory
+            if scratch.exists():
+                shutil.rmtree(scratch)
 
-                scratch.mkdir()
+            scratch.mkdir()
 
-                context = Context(shared=shared, scratch=scratch)
-                params = dict(context=context, raise_error=raise_error, **inputs)
+            context = Context(shared=shared, scratch=scratch)
+            params = dict(context=context, raise_error=raise_error, **inputs)
 
-                # if this is a FahSimulationUnit, then we await its execution in-process
-                if isinstance(unit, FahSimulationUnit):
-                    fah_context = FahContext(
-                        shared=shared,
-                        scratch=scratch,
-                        fah_client=fah_client,
-                        fah_projects=fah_projects,
-                        transformation_sk=transformation_sk,
-                        task_sk=task_sk,
-                        index=index,
-                        fah_poll_interval=fah_poll_interval,
-                        encryption_public_key=encryption_public_key,
-                    )
+            # if this is a FahSimulationUnit, then we await its execution in-process
+            if isinstance(unit, FahSimulationUnit):
+                fah_context = FahContext(
+                    shared=shared,
+                    scratch=scratch,
+                    fah_client=fah_client,
+                    fah_projects=fah_projects,
+                    transformation_sk=transformation_sk,
+                    task_sk=task_sk,
+                    index=index,
+                    fah_poll_interval=fah_poll_interval,
+                    encryption_public_key=encryption_public_key,
+                )
 
-                    result = await unit.execute(
-                        context=fah_context, raise_error=raise_error, **inputs
-                    )
-                else:
-                    # otherwise, execute with process pool, allowing CPU bound
-                    # units to parallelize across multiple tasks being executed
-                    # at once
+                result = await unit.execute(
+                    context=fah_context, raise_error=raise_error, **inputs
+                )
+            else:
+                # otherwise, execute with process pool, allowing CPU bound
+                # units to parallelize across multiple tasks being executed
+                # at once
 
-                    # TODO instead of immediately `await`ing here, we could build
-                    # up a task for each ProtocolUnit whose deps are satisfied, and
-                    # only proceed with additional ones as their deps are satisfied;
-                    # would require restructuring this whole method around that
-                    # approach, in particular handling retries
-                    result = await loop.run_in_executor(
-                        pool,
-                        execute_unit,
-                        json.dumps(
-                            KeyedChain.gufe_to_keyed_chain_rep(unit),
-                            cls=JSON_HANDLER.encoder,
-                        ),
-                        params,
-                    )
+                # TODO instead of immediately `await`ing here, we could build
+                # up a task for each ProtocolUnit whose deps are satisfied, and
+                # only proceed with additional ones as their deps are satisfied;
+                # would require restructuring this whole method around that
+                # approach, in particular handling retries
+                result = await loop.run_in_executor(
+                    pool,
+                    execute_unit,
+                    json.dumps(
+                        KeyedChain.gufe_to_keyed_chain_rep(unit),
+                        cls=JSON_HANDLER.encoder,
+                    ),
+                    params,
+                )
 
-                all_results.append(result)
+            all_results.append(result)
 
-                if not keep_scratch:
-                    shutil.rmtree(scratch)
+            if not keep_scratch:
+                shutil.rmtree(scratch)
 
-                if result.ok():
-                    # attach result to this `ProtocolUnit`
-                    results[unit.key] = result
+            if result.ok():
+                # attach result to this `ProtocolUnit`
+                results[unit.key] = result
 
-                    # hold on to ProtocolUnitResult so the DAG can be replayed if needed
-                    index.set_protocolunit_result(unit.key, result)
+                # hold on to ProtocolUnitResult so the DAG can be replayed if needed
+                index.set_protocolunit_result(unit.key, result)
+                successful_shared_paths.append(shared)
 
-                    break
-                attempt += 1
+                break
+
+            failed_shared_paths.append(shared)
+            attempt += 1
 
         if not result.ok():
             break
 
-    if not keep_shared:
-        for shared_path in shared_paths:
-            shutil.rmtree(shared_path)
-
-    # clean up protocoldagresults from index object state store
-    for unit in protocoldag.protocol_units:
-        index.del_protocolunit_result(unit.key)
-
-        # for each FahSimulationUnit, add a file indicating cleanup can be
-        # performed by a separate archival/deletion process
-        if isinstance(unit, FahSimulationUnit):
-            project_id, run_id, clone_id = index.get_task_protocolunit(
-                task_sk, unit.key
-            )
-            complete_marker = str({"completed": datetime.utcnow().isoformat()}).encode(
-                "utf-8"
-            )
-
-            fah_client.create_clone_file_from_bytes(
-                project_id,
-                run_id,
-                clone_id,
-                complete_marker,
-                "alchemiscale-complete.txt",
-            )
-            fah_client.create_clone_output_file_from_bytes(
-                project_id,
-                run_id,
-                clone_id,
-                complete_marker,
-                "alchemiscale-complete.txt",
-            )
-
-    return ProtocolDAGResult(
+    pdr = ProtocolDAGResult(
         name=protocoldag.name,
         protocol_units=protocoldag.protocol_units,
         protocol_unit_results=all_results,
         transformation_key=protocoldag.transformation_key,
         extends_key=protocoldag.extends_key,
     )
+
+    # clean up failed shared directories, since these aren't used for replays
+    if not keep_shared:
+        for shared_path in failed_shared_paths:
+            shutil.rmtree(shared_path)
+
+    # only if we successfully completed the ProtocolDAG, clean up index and
+    # drop marker files for FAH cleanup
+    if pdr.ok():
+
+        # clean up successful shared directories, since we no longer need them
+        # for replays
+        if not keep_shared:
+            for shared_path in successful_shared_paths:
+                shutil.rmtree(shared_path)
+
+        # clean up protocolunitresults from index object state store
+        for unit in pdr.protocol_units:
+            index.del_protocolunit_result(unit.key)
+
+            # for each FahSimulationUnit, add a file indicating cleanup can be
+            # performed by a separate archival/deletion process
+            if isinstance(unit, FahSimulationUnit):
+                project_id, run_id, clone_id = index.get_task_protocolunit(
+                    task_sk, unit.key
+                )
+                complete_marker = str(
+                    {"completed": datetime.utcnow().isoformat()}
+                ).encode("utf-8")
+
+                fah_client.create_clone_file_from_bytes(
+                    project_id,
+                    run_id,
+                    clone_id,
+                    complete_marker,
+                    "alchemiscale-complete.txt",
+                )
+                fah_client.create_clone_output_file_from_bytes(
+                    project_id,
+                    run_id,
+                    clone_id,
+                    complete_marker,
+                    "alchemiscale-complete.txt",
+                )
+
+    return pdr

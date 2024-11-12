@@ -178,10 +178,6 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         state_file = setup.outputs["state"]
         integrator_file = setup.outputs["integrator"]
 
-        # read in system; count atoms
-        system = deserialize(system_file)
-        n_atoms = system.getNumParticles()
-
         # identify if this Task-ProtocolUnit has an existing PROJECT,RUN,CLONE
         # associated with it
         project_id, run_id, clone_id = ctx.index.get_task_protocolunit(
@@ -200,6 +196,11 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         # choose a PROJECT for this Transformation and create a RUN for it;
         # also need to create a CLONE for this Task-ProtocolUnit
         if project_id is None and run_id is None:
+
+            # read in system; count atoms
+            system = deserialize(system_file)
+            n_atoms = system.getNumParticles()
+
             # select PROJECT to use for execution
             project_id = self.select_project(
                 n_atoms, ctx.fah_projects, protocol.settings
@@ -207,6 +208,10 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
             # get next available RUN id
             run_id = ctx.index.get_project_run_next(project_id)
+
+            # if we are beyond the highest possible RUN id, then halt
+            if run_id > 65535:
+                raise KeyboardInterrupt(f"Exhausted RUN ids for PROJECT {project_id}")
 
             # create RUN for this Transformation
             ctx.fah_client.create_run_file_from_bytes(
@@ -229,6 +234,12 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
 
             # get next available CLONE id
             clone_id = ctx.index.get_run_clone_next(project_id, run_id)
+
+            # if we are beyond the highest possible CLONE id, then halt
+            if clone_id > 65535:
+                raise KeyboardInterrupt(
+                    f"Exhausted CLONE ids for PROJECT {project_id}, RUN {run_id}"
+                )
 
             # create CLONE for this Task
             ctx.fah_client.create_clone_file_from_bytes(
@@ -269,6 +280,14 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
                 ctx.task_sk, self.key, project_id, run_id, clone_id
             )
             ctx.fah_client.create_clone(project_id, run_id, clone_id)
+        else:
+            # if we have a CLONE ID, it means that we have seen this
+            # Task-ProtocolUnit before; we check its status, and if it is in a
+            # failed state, then we restart it
+            jobdata = ctx.fah_client.get_clone(project_id, run_id, clone_id)
+
+            if JobStateEnum[jobdata.state] is JobStateEnum.FAILED:
+                ctx.fah_client.restart_clone(project_id, run_id, clone_id)
 
         while True:
             # check for and await sleep results from work server

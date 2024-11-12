@@ -102,6 +102,7 @@ def fah_client_preloaded(fah_adaptive_sampling_client):
         n_atoms=n_atoms,
         nonbonded_settings=nonbonded_settings,
         core_type=FahCoreType["openmm"],
+        core_id="0x23",
     )
     client.create_project_file_from_bytes(
         project_id, fah_project.json().encode("utf-8"), "alchemiscale-project.txt"
@@ -168,6 +169,7 @@ def compute_service_config(compute_api_args, fah_client_preloaded):
             "index_dir": "./index/index_dir",
             "obj_store": "./index/object_store",
             "fah_project_ids": [90001],
+            "fah_core_ids_supported": ["0x23"],
         },
         "start": {"max_time": None},
     }

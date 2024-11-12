@@ -159,15 +159,16 @@ def create_project(
 
     fahc.create_project(project_id, project_data)
 
-    # create entry in index for this PROJECT
+    # create FahProject structure with info necessary for compute service
     fah_project = FahProject(
         project_id=project_id,
         n_atoms=n_atoms,
         nonbonded_settings=nonbonded_settings,
         core_type=FahCoreType[core_type],
+        core_id=core_id,
     )
 
-    # add file to PROJECT dir that can be used to rebuild index
+    # add file to PROJECT dir that can be used by compute service
     fahc.create_project_file_from_bytes(
         project_id, fah_project.json().encode("utf-8"), "alchemiscale-project.txt"
     )

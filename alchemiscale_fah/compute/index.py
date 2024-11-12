@@ -60,7 +60,7 @@ class FahComputeServiceIndex:
 
         return value
 
-    def get_project_run_next(self, project_id: int) -> FahProject:
+    def get_project_run_next(self, project_id: int) -> int:
         """Get next available RUN id for the given PROJECT."""
         prefix = f"runs/{project_id}-".encode("utf-8")
         run_ids = sorted(
