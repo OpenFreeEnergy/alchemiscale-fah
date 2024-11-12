@@ -101,8 +101,10 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # halt immediately if any project features a core id that is not supported
         for fah_project in self.fah_projects:
             if fah_project.core_id not in settings.fah_core_ids_supported:
-                raise ValueError(f"FAH project '{fah_project.project_id}' configured with unsupported core id '{fah_project.core_id}'; "
-                                 f"check `settings.fah_core_ids_supported` for allowed core ids")
+                raise ValueError(
+                    f"FAH project '{fah_project.project_id}' configured with unsupported core id '{fah_project.core_id}'; "
+                    f"check `settings.fah_core_ids_supported` for allowed core ids"
+                )
 
         self.fah_cert_update_interval = settings.fah_cert_update_interval
 

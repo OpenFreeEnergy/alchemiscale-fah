@@ -61,5 +61,5 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
     )
     fah_core_ids_supported: List[str] = Field(
         ...,
-        description="List of supported core IDs in hex (base 16) format.  E.g. 0xa8."
+        description="List of supported core IDs in hex (base 16) format.  E.g. 0xa8.",
     )

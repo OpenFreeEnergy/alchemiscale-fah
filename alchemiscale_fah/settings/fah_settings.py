@@ -91,8 +91,7 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         description="If 1, will disable checkpoint State tests; 0 will perform State tests (default: 0)",
     )
     disableViewer: int = Field(
-        0,
-        description="If 1 the writing of viewer files will be disabled (default: 0)"
+        0, description="If 1 the writing of viewer files will be disabled (default: 0)"
     )
     MWExclusionThreshold: float = Field(
         0,
