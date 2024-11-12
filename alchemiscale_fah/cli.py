@@ -165,6 +165,7 @@ def create_project(
         n_atoms=n_atoms,
         nonbonded_settings=nonbonded_settings,
         core_type=FahCoreType[core_type],
+        core_id=core_id,
     )
 
     # add file to PROJECT dir that can be used to rebuild index

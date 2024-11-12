@@ -163,6 +163,9 @@ class FahProject(BaseModel):
     n_atoms: PositiveInt
     nonbonded_settings: NonbondedSettings
     core_type: FahCoreType
+    core_id: str = Field(
+        ..., description="The core ID in hex (base 16) format.  E.g. 0xa8."
+    )
 
 
 class FahRun(BaseModel):

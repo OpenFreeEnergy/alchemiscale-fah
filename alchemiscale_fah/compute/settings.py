@@ -59,3 +59,7 @@ class FahAsynchronousComputeServiceSettings(ComputeServiceSettings):
         60,
         description="Frequency in seconds between polls of FAH WS API for completed jobs.",
     )
+    fah_core_ids_supported: List[str] = Field(
+        ...,
+        description="List of supported core IDs in hex (base 16) format.  E.g. 0xa8."
+    )

@@ -86,11 +86,31 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         "globals.csv",
         description="File to write global variables to (default: globals.csv)",
     )
+    disableCheckpointStateTests: int = Field(
+        0,
+        description="If 1, will disable checkpoint State tests; 0 will perform State tests (default: 0)",
+    )
+    disableViewer: int = Field(
+        0,
+        description="If 1 the writing of viewer files will be disabled (default: 0)"
+    )
     MWExclusionThreshold: float = Field(
         0,
         description="Molecules below this molecular weight threshold will be excluded from display in the viewer (default: 0)",
     )
-    disableCheckpointStateTests: int = Field(
+    minimize: int = Field(
         0,
-        description="If 1, will disable checkpoint State tests; 0 will perform State tests (default: 0)",
+        description="If 1 minimize the system prior to simulating (default: 0)",
+    )
+    minimizeTolerance: float = Field(
+        10,
+        description="RMS tolerance for halting minimization (default 10 kJ/mol/nm)",
+    )
+    minimizeMaxIterations: int = Field(
+        5000,
+        description="Maximum number of minimization iterations to perform (default: 5000)",
+    )
+    minimizeReportFreq: int = Field(
+        5,
+        description="Report interval for minimization statistics (default 5)",
     )
