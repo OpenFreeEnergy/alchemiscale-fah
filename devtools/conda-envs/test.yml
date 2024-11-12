@@ -6,10 +6,11 @@ dependencies:
   - pip
 
   # alchemiscale dependencies
-  - gufe=1.0.0
-  - openfe=1.0.1
+  - gufe>=1.0.0
+  - openfe>=1.1.0
   - openmmforcefields>=0.14.1
   - pydantic<2.0
+  - async-lru
 
   ## state store
   - neo4j-python-driver
@@ -46,13 +47,14 @@ dependencies:
   - coverage
   - moto
 
+  # openmm protocols
+  - feflow>=0.1.0
+
   # alchemiscale-fah
   - plyvel
   - zstandard
 
   - pip:
     - git+https://github.com/openforcefield/alchemiscale
-    - git+https://github.com/choderalab/feflow
-    - async_lru
-    - git+https://github.com/datryllic/grolt@neo4j-5.x # neo4j test server deployment
+    - git+https://github.com/datryllic/grolt # neo4j test server deployment
     - git+https://github.com/OpenFreeEnergy/openfe-benchmarks
