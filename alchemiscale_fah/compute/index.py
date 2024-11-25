@@ -15,7 +15,7 @@ from gufe.tokenization import GufeKey, JSON_HANDLER, GufeTokenizable
 from gufe.protocols.protocoldag import ProtocolDAG
 from gufe.protocols.protocolunit import ProtocolUnitResult
 from alchemiscale.models import ScopedKey
-from alchemiscale.keyedchain import KeyedChain
+from gufe.tokenization import KeyedChain
 
 from .models import FahProject, FahRun, FahClone
 

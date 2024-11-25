@@ -120,6 +120,9 @@ init:
   # Frequency in seconds between polls of FAH WS API for completed jobs.
   fah_poll_interval: 60
 
+  # List of supported core IDs in hex (base 16) format.  E.g. 0xa8.
+  fah_core_ids_supported: []
+
 # options for service execution
 start:
 
