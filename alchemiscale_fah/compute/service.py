@@ -35,7 +35,7 @@ from alchemiscale.compute.service import (
     InterruptableSleep,
     SleepInterrupted,
 )
-from alchemiscale.keyedchain import KeyedChain
+from gufe.tokenization import KeyedChain
 
 from .models import FahProject
 from .settings import FahAsynchronousComputeServiceSettings
