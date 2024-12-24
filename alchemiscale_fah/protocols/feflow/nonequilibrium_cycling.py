@@ -144,6 +144,11 @@ class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
                 "`fah_settings.numSteps` must equal `2 * integrator_settings.equilibrium_steps + 2 * integrator_settings.nonequilibrium_steps`"
             )
 
+        if not settings.fah_settings.minimize:
+            raise ValueError(
+                "`fah_settings.minimize` must be set to ``True`` for this protocol"
+            )
+
     @classmethod
     def _default_settings(cls):
 
@@ -153,6 +158,10 @@ class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
         base_settings.integrator_settings.nonequilibrium_steps = 250000
 
         fah_openmm_core_settings = FahOpenMMCoreSettings()
+
+        # because this protocol does not minimize in its `SetupUnit`, we tell
+        # the `openmm-core` to do this
+        fah_openmm_core_settings.minimize = True
 
         return FahNonEquilibriumCyclingSettings(
             fah_settings=FahOpenMMCoreSettings(), **dict(base_settings)
