@@ -164,5 +164,5 @@ class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
         fah_openmm_core_settings.minimize = True
 
         return FahNonEquilibriumCyclingSettings(
-            fah_settings=FahOpenMMCoreSettings(), **dict(base_settings)
+            fah_settings=fah_openmm_core_settings, **dict(base_settings)
         )
