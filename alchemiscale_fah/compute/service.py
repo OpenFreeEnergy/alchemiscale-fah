@@ -211,9 +211,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # success or failure
 
         shared = self.shared_basedir / str(protocoldag.key)
-        shared.mkdir()
+        shared.mkdir(exist_ok=True)
         scratch = self.scratch_basedir / str(protocoldag.key)
-        scratch.mkdir()
+        scratch.mkdir(exist_ok=True)
 
         self.logger.info("Executing '%s'...", protocoldag)
         try:
