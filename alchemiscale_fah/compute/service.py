@@ -236,9 +236,6 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 index=self.index,
             )
         finally:
-            if not self.keep_shared:
-                shutil.rmtree(shared)
-
             if not self.keep_scratch:
                 shutil.rmtree(scratch)
 
@@ -257,6 +254,11 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         # push the result (or failure) back to the compute API
         result_sk = self.push_result(task, protocoldagresult)
         self.logger.info("Pushed result `%s'", protocoldagresult)
+
+        if protocoldagresult.ok():
+            # only want to delete if a `protocoldagresult` comes out as a success
+            if not self.keep_shared:
+                shutil.rmtree(shared)
 
         return task, result_sk
 
