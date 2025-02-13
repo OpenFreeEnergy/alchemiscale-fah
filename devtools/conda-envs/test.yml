@@ -55,6 +55,6 @@ dependencies:
   - zstandard
 
   - pip:
-    - git+https://github.com/openforcefield/alchemiscale
+    - git+https://github.com/OpenFreeEnergy/alchemiscale
     - git+https://github.com/datryllic/grolt # neo4j test server deployment
     - git+https://github.com/OpenFreeEnergy/openfe-benchmarks
