@@ -1,6 +1,4 @@
-"""Tests for compute services.
-
-"""
+"""Tests for compute services."""
 
 import os
 from pathlib import Path

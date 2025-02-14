@@ -1,6 +1,4 @@
-"""Tests for FahAdaptiveSamplingClient.
-
-"""
+"""Tests for FahAdaptiveSamplingClient."""
 
 from pathlib import Path
 from importlib import resources
