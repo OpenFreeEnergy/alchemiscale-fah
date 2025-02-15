@@ -58,10 +58,10 @@ class ProjectData(FahAdaptiveSamplingModel):
     )
     credit: PositiveInt = Field(..., description="The base credit awarded for the WU.")
     timeout: PositiveFloat = Field(
-        86400.0, description="Days before the WU can be reassigned."
+        1, description="Days before the WU can be reassigned."
     )
     deadline: PositiveFloat = Field(
-        172800.0, description="Days in which the WU can be returned for credit."
+        2, description="Days in which the WU can be returned for credit."
     )
     compression: CompressionTypeEnum = Field(
         CompressionTypeEnum.ZLIB,
