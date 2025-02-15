@@ -1,6 +1,4 @@
-"""Tests for FahNonEquilibriumCyclingProtocol.
-
-"""
+"""Tests for FahNonEquilibriumCyclingProtocol."""
 
 import pytest
 from pathlib import Path

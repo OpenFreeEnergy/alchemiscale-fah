@@ -64,7 +64,9 @@ class ProjectData(FahAdaptiveSamplingModel):
         172800.0, description="Days in which the WU can be returned for credit."
     )
     compression: CompressionTypeEnum = Field(
-        CompressionTypeEnum.ZLIB, description="Enable WU compression."
+        CompressionTypeEnum.ZLIB,
+        description="Enable WU compression.",
+        validate_default=True,
     )
 
     @validator("core_id", pre=True, always=True)

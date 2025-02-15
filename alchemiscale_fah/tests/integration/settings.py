@@ -7,12 +7,13 @@
 import pathlib
 from functools import lru_cache
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class FrozenSettings(BaseSettings):
-    class Config:
-        frozen = True
+    model_config = SettingsConfigDict(
+        frozen=True,
+    )
 
 
 class WSAPISettings(FrozenSettings):
