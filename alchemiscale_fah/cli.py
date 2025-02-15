@@ -150,7 +150,7 @@ def create_project(
     credit = assign_credit(effort)
 
     project_data = ProjectData(
-        core_id=core_id, contact=contact_email, atoms=n_atoms, credit=credit
+        core_id=core_id, contact=contact_email, atoms=n_atoms, credit=int(credit)
     )
 
     fahc = FahAdaptiveSamplingClient(

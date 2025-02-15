@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Union, Optional, List, Dict, Tuple
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from alchemiscale.models import Scope, ScopedKey
 from alchemiscale.compute.settings import ComputeServiceSettings

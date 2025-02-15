@@ -7,6 +7,8 @@ import time
 
 import pytest
 
+from alchemiscale.compression import decompress_gufe_zstd
+
 from alchemiscale_fah.compute.client import FahAdaptiveSamplingClient
 from alchemiscale_fah.compute.models import (
     ProjectData,
@@ -117,9 +119,10 @@ class TestFahAsynchronousComputeService:
         assert objs[0].key == os.path.join(s3os.prefix, protocoldagresultref.location)
 
         # check protocoldagresult
-        pdr = s3os.pull_protocoldagresult(
+        pdr_bytes = s3os.pull_protocoldagresult(
             location=protocoldagresultref.location, ok=protocoldagresultref.ok
         )
+        pdr = decompress_gufe_zstd(pdr_bytes)
 
         assert pdr.ok()
 
@@ -147,10 +150,11 @@ class TestFahAsynchronousComputeService:
         assert protocoldagresultref.records[0]["pdr"]["ok"] is True
 
         # check protocoldagresult
-        pdr = s3os.pull_protocoldagresult(
+        pdr_bytes = s3os.pull_protocoldagresult(
             location=protocoldagresultref.records[0]["pdr"]["location"],
             ok=protocoldagresultref.records[0]["pdr"]["ok"],
         )
+        pdr = decompress_gufe_zstd(pdr_bytes)
 
         assert pdr.ok()
 

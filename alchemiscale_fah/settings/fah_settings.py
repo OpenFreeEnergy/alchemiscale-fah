@@ -1,6 +1,10 @@
 from typing import Optional, Union
 
-from pydantic import Field
+try:
+    from pydantic.v1 import Field
+except ImportError:
+    from pydantic import Field
+
 from gufe.settings import SettingsBaseModel
 
 
