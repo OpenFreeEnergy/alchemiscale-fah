@@ -12,6 +12,8 @@ dependencies:
   - pydantic >2
   - pydantic-settings
   - async-lru
+  - diskcache
+  - zstandard
 
   ## state store
   - neo4j-python-driver
