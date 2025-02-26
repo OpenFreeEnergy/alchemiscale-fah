@@ -83,14 +83,18 @@ class ProjectData(FahAdaptiveSamplingModel):
     @field_validator("timeout", mode="before")
     def validate_timeout(cls, v, values, **kwargs):
         if v < 300:
-            raise ValueError("`timeout` must not be less than 300; it will be interpreted as days if so")
+            raise ValueError(
+                "`timeout` must not be less than 300; it will be interpreted as days if so"
+            )
 
         return v
 
     @field_validator("deadline", mode="before")
     def validate_deadline(cls, v, values, **kwargs):
         if v < 300:
-            raise ValueError("`deadline` must not be less than 300; it will be interpreted as days if so")
+            raise ValueError(
+                "`deadline` must not be less than 300; it will be interpreted as days if so"
+            )
 
         return v
 
