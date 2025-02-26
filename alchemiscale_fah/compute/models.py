@@ -6,7 +6,7 @@ from enum import Enum
 from pydantic import (
     BaseModel,
     Field,
-    validator,
+    field_validator,
     NonNegativeInt,
     PositiveInt,
     PositiveFloat,
@@ -57,11 +57,11 @@ class ProjectData(FahAdaptiveSamplingModel):
         ..., description="Approximate number of atoms in the simulations."
     )
     credit: PositiveInt = Field(..., description="The base credit awarded for the WU.")
-    timeout: PositiveFloat = Field(
-        1, description="Days before the WU can be reassigned."
+    timeout: PositiveInt = Field(
+        86400, description="Seconds before the WU can be reassigned."
     )
-    deadline: PositiveFloat = Field(
-        2, description="Days in which the WU can be returned for credit."
+    deadline: PositiveInt = Field(
+        172800, description="Seconds in which the WU can be returned for credit."
     )
     compression: CompressionTypeEnum = Field(
         CompressionTypeEnum.ZLIB,
@@ -69,7 +69,7 @@ class ProjectData(FahAdaptiveSamplingModel):
         validate_default=True,
     )
 
-    @validator("core_id", pre=True, always=True)
+    @field_validator("core_id", mode="before")
     def validate_core_id(cls, v, values, **kwargs):
         if not v[:2] == "0x":
             raise ValueError("`core_id` must be given in hex format, e.g. 0xa8")
@@ -77,6 +77,20 @@ class ProjectData(FahAdaptiveSamplingModel):
             int(v, 16)
         except:
             raise ValueError("`core_id` must be given in hex format, e.g. 0xa8")
+
+        return v
+
+    @field_validator("timeout", mode="before")
+    def validate_timeout(cls, v, values, **kwargs):
+        if v < 300:
+            raise ValueError("`timeout` must not be less than 300; it will be interpreted as days if so")
+
+        return v
+
+    @field_validator("deadline", mode="before")
+    def validate_deadline(cls, v, values, **kwargs):
+        if v < 300:
+            raise ValueError("`deadline` must not be less than 300; it will be interpreted as days if so")
 
         return v
 
@@ -105,7 +119,7 @@ class JobData(FahAdaptiveSamplingModel):
     )
     progress: Optional[NonNegativeInt] = Field(None, description="Job progress.")
 
-    @validator("core", pre=True, always=True)
+    @field_validator("core", mode="before")
     def validate_core(cls, v, values, **kwargs):
         if isinstance(v, str):
             if v[:2] == "0x":
