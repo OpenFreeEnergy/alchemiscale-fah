@@ -7,15 +7,16 @@
 high-throughput alchemical free energy execution...on Folding\@Home
 #######################################################################
 
-**alchemiscale-fah** provides deployable components for using `Folding@Home`_ work servers as compute sources for an `alchemiscale`_ server instance, enabling "planetary-scale" compute for :external+gufe:py:class:`~gufe.network.AlchemicalNetwork` evaluation.
+**alchemiscale-fah** provides deployable components for using `Folding@Home`_ work servers as compute sources for an `alchemiscale`_ server instance, enabling "planetary-scale" distributed compute for :external+gufe:py:class:`~gufe.network.AlchemicalNetwork` evaluation.
+It also features :external+gufe:py:class:`~gufe.protocols.Protocol`\s that take advantage of these components.
 
-For users: see the :ref:`user-guide` for details on how to make use of Folding\@Home-based ``Protocol``\s to take advantage of 
+For users: see the :ref:`user-guide` for details on how to make use of Folding\@Home-based :external+gufe:py:class:`~gufe.protocols.Protocol`\s.
 
-For instructions on how to deploy an **alchemiscale-fah** compute service to a Folding\@Home work server, see :ref:`deployment` and :ref:`comute`.
+For instructions on how to deploy an **alchemiscale-fah** compute service to a Folding\@Home work server, see :ref:`deployment` and :ref:`compute`.
 
 
 .. note::
-   This software is in beta and under active development. It is used for production purposes by several early-adopters, but its API is still rapidly evolving.
+   This software is in beta and under active development. It is used for production purposes by early-adopters, but its API is still rapidly evolving.
 
 
 

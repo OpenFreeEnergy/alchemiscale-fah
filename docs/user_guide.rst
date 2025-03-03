@@ -43,7 +43,7 @@ Creating an AlchemicalNetwork using a Folding\@Home-based Protocol
 **alchemiscale-fah** features :external+gufe:py:class:`~gufe.protocols.Protocol`\s derived from packages such as ``feflow``.
 These take advantage of most of the components of these :external+gufe:py:class:`~gufe.protocols.Protocol`\s, but perform the compute-intensive simulation workloads using Folding\@Home instead.
 
-To create an :external+gufe:py:class:`~gufe.network.AlchemicalNetwork`, review this notebook and apply the same approach to your systems of interest and using a Folding\@Home-based :external+gufe:py:class:`~gufe.protocols.Protocol` like those listed below: `Preparing AlchemicalNetworks.ipynb`_
+To create an :external+gufe:py:class:`~gufe.network.AlchemicalNetwork`, review this notebook and apply the same approach to your systems of interest using a Folding\@Home-based :external+gufe:py:class:`~gufe.protocols.Protocol` like those listed below: `Preparing AlchemicalNetworks.ipynb`_
 
 Currently, the following :external+gufe:py:class:`~gufe.protocols.Protocol`\s are available to users:
 
@@ -65,7 +65,8 @@ For production use of this protocol, we recommend the default settings::
     >>> settings = NonEquilibriumCyclingProtocol.default_settings()
 
 These default settings will perform non-equilibrium cycling with a total simulation time of 40 ns for each cycle, starting with 10 ns of equilibrium sampling in state A, 10 ns of nonequilibrium sampling from state A to B, 10 ns of equilibrium sampling in state B, and finally 10 ns of nonequilibrium sampling from state B to A.
-To adjust these lengths, you can change the following options::
+
+We recommend that you stay close to these default values, but if you really need to adjust these run lengths, you can change the following options (assumes a 4 fs timestep)::
 
     >>> settings.integrator_settings.equilibrium_steps = 250000
     >>> settings.integrator_settings.nonequilibrium_steps = 250000
@@ -80,11 +81,11 @@ To adjust this number, change the following option to the desired count::
 
     >>> settings.num_cycles = 100
 
-If a :external+gufe:py:class:`~gufe.transformations.Transformation`\s features charge changes, then consider setting the following::
+If a :external+gufe:py:class:`~gufe.transformations.Transformation` features charge changes, then consider setting the following::
 
     >>> settings.alchemical_settings.explicit_charge_correction = True
 
-You may also want to set a newer `OpenFF` forcefield for any small molecules you simulate.
+You may also want to set a newer **OpenFF** forcefield for any small molecules you simulate.
 You can set this to the version you want with, e.g.::
 
     >>> settings.forcefield_settings.small_molecule_forcefield = 'openff-2.2.1'
