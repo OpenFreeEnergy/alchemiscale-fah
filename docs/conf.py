@@ -48,6 +48,7 @@ autodoc_mock_imports = [
     "pydantic_settings",
     "starlette",
     "yaml",
+    "plyvel",
 ]
 
 intersphinx_mapping = {
