@@ -64,7 +64,7 @@ For production use of this protocol, we recommend the default settings::
 
     >>> settings = NonEquilibriumCyclingProtocol.default_settings()
 
-These default settings will perform non-equilibrium cycling with a total simulation time of 40 ns for each cycle, starting with 10 ns of equilibrium sampling in state A, 10 ns of nonequilibrium sampling from state A to B, 10 ns of equilibrium sampling in state B, and finally 10 ns of nonequilibrium sampling from state B to A.
+These default settings will perform non-equilibrium cycling with a total simulation time of 4 ns for each cycle, starting with 1 ns of equilibrium sampling in state A, 1 ns of nonequilibrium sampling from state A to B, 1 ns of equilibrium sampling in state B, and finally 1 ns of nonequilibrium sampling from state B to A.
 
 We recommend that you stay close to these default values, but if you really need to adjust these run lengths, you can change the following options (assumes a 4 fs timestep)::
 
