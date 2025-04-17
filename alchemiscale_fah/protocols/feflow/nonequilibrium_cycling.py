@@ -131,6 +131,7 @@ class FahNonEquilibriumCyclingSimulationUnit(FahOpenMMSimulationUnit):
 # TODO: add validators to inputs to ensure good behavior on Folding@Home
 class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
     _simulation_unit = FahNonEquilibriumCyclingSimulationUnit
+    _settings_cls = FahNonEquilibriumCyclingSettings
 
     def __init__(self, settings: FahNonEquilibriumCyclingSettings):
         super().__init__(settings)
