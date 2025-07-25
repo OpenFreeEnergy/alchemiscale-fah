@@ -79,7 +79,7 @@ Note that if you change the above, you must also set the following; this tells t
 A total of 100 cycles will be performed in parallel.
 To adjust this number, change the following option to the desired count::
 
-    >>> settings.num_cycles = 100
+    >>> settings.num_cycles = 10
 
 If a :external+gufe:py:class:`~gufe.transformations.Transformation` features charge changes, then consider setting the following::
 
