@@ -312,7 +312,8 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 self._refresh_cert_update_thread()
 
             done, pending = await asyncio.wait(
-                async_tasks, return_when=asyncio.FIRST_COMPLETED,
+                async_tasks,
+                return_when=asyncio.FIRST_COMPLETED,
                 timeout=self.sleep_interval,
             )
 
