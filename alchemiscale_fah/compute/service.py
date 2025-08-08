@@ -520,7 +520,9 @@ async def execute_DAG(
     """
     loop = asyncio.get_running_loop()
 
-    async def _execute_unit(unit: ProtocolUnit) -> tuple[ProtocolUnit, ProtocolDAGResult] | None:
+    async def _execute_unit(
+        unit: ProtocolUnit,
+    ) -> tuple[ProtocolUnit, ProtocolDAGResult] | None:
 
         nonlocal results
         nonlocal failed_shared_paths
@@ -643,11 +645,11 @@ async def execute_DAG(
         for pu in S:
             if not pu in async_tasks:
                 async_tasks[pu] = asyncio.create_task(_execute_unit(pu))
-            
+
         # wait for at least one async task to finish
         done, pending = await asyncio.wait(
-                    async_tasks.values(), return_when=asyncio.FIRST_COMPLETED
-                )
+            async_tasks.values(), return_when=asyncio.FIRST_COMPLETED
+        )
 
         for async_task in done:
             unit, result = await async_task
@@ -721,6 +723,3 @@ async def execute_DAG(
                 )
 
     return pdr
-
-
-
