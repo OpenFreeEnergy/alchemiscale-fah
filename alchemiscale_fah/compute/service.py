@@ -520,22 +520,16 @@ async def execute_DAG(
     """
     loop = asyncio.get_running_loop()
 
-    if n_retries < 0:
-        raise ValueError("Must give positive number of retries")
+    async def _execute_unit(unit: ProtocolUnit) -> tuple[ProtocolUnit, ProtocolDAGResult] | None:
 
-    # iterate in DAG order
-    results: dict[GufeKey, ProtocolUnitResult] = {}
-    all_results = []  # successes AND failures
-    successful_shared_paths = []
-    failed_shared_paths = []
-    for unit in protocoldag.protocol_units:
-        # for each unit, check that results already exist; if so, use these
-        # and skip forward
+        nonlocal results
+        nonlocal failed_shared_paths
+
+        # check that results already exist; if so, use these and skip forward
         result = index.get_protocolunit_result(unit.key)
         if result is not None:
             results[unit.key] = result
-            all_results.append(result)
-            continue
+            return unit, result
 
         # translate each `ProtocolUnit` in input into corresponding
         # `ProtocolUnitResult`
@@ -564,47 +558,50 @@ async def execute_DAG(
             context = Context(shared=shared, scratch=scratch)
             params = dict(context=context, raise_error=raise_error, **inputs)
 
-            # if this is a FahSimulationUnit, then we await its execution in-process
-            if isinstance(unit, FahSimulationUnit):
-                fah_context = FahContext(
-                    shared=shared,
-                    scratch=scratch,
-                    fah_client=fah_client,
-                    fah_projects=fah_projects,
-                    transformation_sk=transformation_sk,
-                    task_sk=task_sk,
-                    index=index,
-                    fah_poll_interval=fah_poll_interval,
-                    encryption_public_key=encryption_public_key,
-                )
+            try:
+                # if this is a FahSimulationUnit, then we await its execution in-process
+                if isinstance(unit, FahSimulationUnit):
+                    fah_context = FahContext(
+                        shared=shared,
+                        scratch=scratch,
+                        fah_client=fah_client,
+                        fah_projects=fah_projects,
+                        transformation_sk=transformation_sk,
+                        task_sk=task_sk,
+                        index=index,
+                        fah_poll_interval=fah_poll_interval,
+                        encryption_public_key=encryption_public_key,
+                    )
 
-                result = await unit.execute(
-                    context=fah_context, raise_error=raise_error, **inputs
-                )
-            else:
-                # otherwise, execute with process pool, allowing CPU bound
-                # units to parallelize across multiple tasks being executed
-                # at once
+                    result = await unit.execute(
+                        context=fah_context, raise_error=raise_error, **inputs
+                    )
+                else:
+                    # otherwise, execute with process pool, allowing CPU bound
+                    # units to parallelize across multiple tasks being executed
+                    # at once
 
-                # TODO instead of immediately `await`ing here, we could build
-                # up a task for each ProtocolUnit whose deps are satisfied, and
-                # only proceed with additional ones as their deps are satisfied;
-                # would require restructuring this whole method around that
-                # approach, in particular handling retries
-                result = await loop.run_in_executor(
-                    pool,
-                    execute_unit,
-                    json.dumps(
-                        KeyedChain.gufe_to_keyed_chain_rep(unit),
-                        cls=JSON_HANDLER.encoder,
-                    ),
-                    params,
-                )
+                    # TODO instead of immediately `await`ing here, we could build
+                    # up a task for each ProtocolUnit whose deps are satisfied, and
+                    # only proceed with additional ones as their deps are satisfied;
+                    # would require restructuring this whole method around that
+                    # approach, in particular handling retries
+                    result = await loop.run_in_executor(
+                        pool,
+                        execute_unit,
+                        json.dumps(
+                            KeyedChain.gufe_to_keyed_chain_rep(unit),
+                            cls=JSON_HANDLER.encoder,
+                        ),
+                        params,
+                    )
 
-            all_results.append(result)
-
-            if not keep_scratch:
-                shutil.rmtree(scratch)
+            # if we receive cancellation from event loop, then return nothing
+            except asyncio.CancelledError:
+                return None
+            finally:
+                if not keep_scratch:
+                    shutil.rmtree(scratch)
 
             if result.ok():
                 # attach result to this `ProtocolUnit`
@@ -613,13 +610,62 @@ async def execute_DAG(
                 # hold on to ProtocolUnitResult so the DAG can be replayed if needed
                 index.set_protocolunit_result(unit.key, result)
                 successful_shared_paths.append(shared)
-
                 break
 
             failed_shared_paths.append(shared)
             attempt += 1
 
-        if not result.ok():
+        return unit, result
+
+    if n_retries < 0:
+        raise ValueError("Must give positive number of retries")
+
+    # iterate in DAG order
+    results: dict[GufeKey, ProtocolUnitResult] = {}
+    all_results = []  # successes AND failures
+    successful_shared_paths = []
+    failed_shared_paths = []
+
+    G = protocoldag.graph.copy()
+
+    async_tasks: dict[ProtocolUnit, asyncio.Task] = {}
+    cancelled = False
+
+    # modified Kahn's algorithm
+    while G.nodes:
+        # get a list of tuples giving (ProtocolUnit, number of dependencies)
+        dependencies = G.out_degree()
+
+        # get ProtocolUnits with no dependencies
+        S = [pu for pu, degree in dependencies if degree == 0]
+
+        # execute as async tasks
+        for pu in S:
+            if not pu in async_tasks:
+                async_tasks[pu] = asyncio.create_task(_execute_unit(pu))
+            
+        # wait for at least one async task to finish
+        done, pending = await asyncio.wait(
+                    async_tasks.values(), return_when=asyncio.FIRST_COMPLETED
+                )
+
+        for async_task in done:
+            unit, result = await async_task
+            all_results.append(result)
+            async_tasks.pop(unit)
+
+            # if successful, drop unit from graph to proceed further
+            # if not, indicate we should cancel
+            if result.ok():
+                G.remove_node(unit)
+            else:
+                cancelled = True
+
+        # cancel pending Tasks and break out of loop
+        if cancelled:
+            for async_task in pending:
+                async_task.cancel()
+
             break
 
     pdr = ProtocolDAGResult(
@@ -675,3 +721,6 @@ async def execute_DAG(
                 )
 
     return pdr
+
+
+
