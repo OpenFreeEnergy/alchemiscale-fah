@@ -222,9 +222,9 @@ def test_compute_fahasynchronous(
                 else:
                     break
 
-            assert csreg.records[0]["csreg"][
-                "registered"
-            ] > datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(seconds=30)
+            assert csreg.records[0]["csreg"]["registered"] > datetime.datetime.now(
+                tz=datetime.UTC
+            ) - datetime.timedelta(seconds=30)
 
             proc.terminate()
             proc.join()
