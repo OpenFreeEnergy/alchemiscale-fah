@@ -344,7 +344,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 for task_sk in task_sks:
                     if task_sk is not None:
                         self.logger.info("Executing task '%s'...", task_sk)
-                        async_tasks.append(asyncio.create_task(self.async_execute(task_sk)))
+                        async_tasks.append(
+                            asyncio.create_task(self.async_execute(task_sk))
+                        )
 
         return result_sks
 
