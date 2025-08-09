@@ -329,21 +329,22 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 async_tasks.remove(async_task)
 
             # attempt to claim a new task, add to execution
-            self.logger.info("Attempting to claim an additional task")
-            task_sks: List[ScopedKey] = self.client.claim_tasks(
-                scopes=self.scopes,
-                compute_service_id=self.compute_service_id,
-                count=self.claim_limit,
-                protocols=self.settings.protocols,
-            )
+            if self.claim_limit - len(async_tasks) > 0:
+                self.logger.info("Attempting to claim an additional task")
+                task_sks: List[ScopedKey] = self.client.claim_tasks(
+                    scopes=self.scopes,
+                    compute_service_id=self.compute_service_id,
+                    count=(self.claim_limit - len(async_tasks)),
+                    protocols=self.settings.protocols,
+                )
 
-            if all([task_sk is None for task_sk in task_sks]):
-                self.logger.info("No new task claimed")
+                if all([task_sk is None for task_sk in task_sks]):
+                    self.logger.info("No new task claimed")
 
-            for task_sk in task_sks:
-                if task_sk is not None:
-                    self.logger.info("Executing task '%s'...", task_sk)
-                    async_tasks.append(asyncio.create_task(self.async_execute(task_sk)))
+                for task_sk in task_sks:
+                    if task_sk is not None:
+                        self.logger.info("Executing task '%s'...", task_sk)
+                        async_tasks.append(asyncio.create_task(self.async_execute(task_sk)))
 
         return result_sks
 
