@@ -76,10 +76,10 @@ Note that if you change the above, you must also set the following; this tells t
     >>> settings.fah_settings.numSteps = (2 * settings.integrator_settings.equilibrium_steps +
                                           2 * settings.integrator_settings.nonequilibrium_steps)
 
-A total of 100 cycles will be performed in parallel.
+A total of 100 cycles will be performed concurrently.
 To adjust this number, change the following option to the desired count::
 
-    >>> settings.num_cycles = 10
+    >>> settings.num_cycles = 100
 
 If a :external+gufe:py:class:`~gufe.transformations.Transformation` features charge changes, then consider setting the following::
 
