@@ -5,7 +5,7 @@ from click.testing import CliRunner
 import time
 import yaml
 import multiprocessing
-from datetime import datetime, timedelta
+import datetime
 
 from alchemiscale.cli import cli as alchemiscale_cli
 from alchemiscale_fah.cli import cli
@@ -224,7 +224,7 @@ def test_compute_fahasynchronous(
 
             assert csreg.records[0]["csreg"][
                 "registered"
-            ] > datetime.utcnow() - timedelta(seconds=30)
+            ] > datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(seconds=30)
 
             proc.terminate()
             proc.join()
