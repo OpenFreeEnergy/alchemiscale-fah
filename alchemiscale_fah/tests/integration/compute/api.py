@@ -83,7 +83,7 @@ class WSStateDB:
                         clone=clone_id,
                         gen=1,
                         state=state,
-                        last=datetime.datetime.utcnow(),
+                        last=datetime.datetime.now(tz=datetime.UTC),
                     )
                     .json()
                     .encode("utf-8")
@@ -342,7 +342,7 @@ def get_clone(
 
     # if enough time has passed (3 seconds), then set the job as complete,
     # then return again
-    if (datetime.datetime.utcnow() - jobdata.last).total_seconds() > 3:
+    if (datetime.datetime.now(tz=datetime.UTC) - jobdata.last).total_seconds() > 3:
         _finish_clone(project_id, run_id, clone_id, outputs_dir, statedb)
 
     # return new clone state information
