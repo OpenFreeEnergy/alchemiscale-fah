@@ -15,7 +15,7 @@ import threading
 import time
 import logging
 import shutil
-from datetime import datetime
+import datetime
 from concurrent.futures import ProcessPoolExecutor
 
 from gufe.tokenization import GufeKey, JSON_HANDLER
@@ -68,6 +68,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             self.settings.api_url,
             self.settings.identifier,
             self.settings.key,
+            cache_directory=self.settings.client_cache_directory,
+            cache_size_limit=self.settings.client_cache_size_limit,
+            use_local_cache=self.settings.client_use_local_cache,
             max_retries=self.settings.client_max_retries,
             retry_base_seconds=self.settings.client_retry_base_seconds,
             retry_max_seconds=self.settings.client_retry_max_seconds,
@@ -704,7 +707,7 @@ async def execute_DAG(
                     task_sk, unit.key
                 )
                 complete_marker = str(
-                    {"completed": datetime.utcnow().isoformat()}
+                    {"completed": datetime.datetime.now(tz=datetime.UTC).isoformat()}
                 ).encode("utf-8")
 
                 fah_client.create_clone_file_from_bytes(
