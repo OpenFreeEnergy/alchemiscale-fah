@@ -223,7 +223,7 @@ def test_compute_fahasynchronous(
                     break
 
             assert csreg.records[0]["csreg"]["registered"] > datetime.datetime.now(
-                datetime.UTC
+                tz=datetime.UTC
             ) - datetime.timedelta(seconds=30)
 
             proc.terminate()
