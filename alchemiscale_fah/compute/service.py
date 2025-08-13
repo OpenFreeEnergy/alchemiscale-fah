@@ -329,12 +329,13 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 async_tasks.remove(async_task)
 
             # attempt to claim a new task, add to execution
-            if self.claim_limit - len(async_tasks) > 0:
+            task_count_to_claim = self.claim_limit - len(async_tasks)
+            if task_count_to_claim > 0:
                 self.logger.info("Attempting to claim additional tasks")
                 task_sks: List[ScopedKey] = self.client.claim_tasks(
                     scopes=self.scopes,
                     compute_service_id=self.compute_service_id,
-                    count=(self.claim_limit - len(async_tasks)),
+                    count=task_count_to_claim,
                     protocols=self.settings.protocols,
                 )
 
