@@ -585,12 +585,6 @@ async def execute_DAG(
                     # otherwise, execute with process pool, allowing CPU bound
                     # units to parallelize across multiple tasks being executed
                     # at once
-
-                    # TODO instead of immediately `await`ing here, we could build
-                    # up a task for each ProtocolUnit whose deps are satisfied, and
-                    # only proceed with additional ones as their deps are satisfied;
-                    # would require restructuring this whole method around that
-                    # approach, in particular handling retries
                     result = await loop.run_in_executor(
                         pool,
                         execute_unit,
