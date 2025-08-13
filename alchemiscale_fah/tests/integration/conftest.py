@@ -336,7 +336,7 @@ def network_tyk2_solvent():
     settings.fah_settings.numSteps = 100000
     settings.fah_settings.xtcFreq = 2500
 
-    settings.num_cycles = 3
+    settings.num_cycles = 10
 
     protocol = FahNonEquilibriumCyclingProtocol(settings)
 
