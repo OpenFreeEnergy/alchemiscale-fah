@@ -315,7 +315,9 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 self._refresh_cert_update_thread()
 
             done, pending = await asyncio.wait(
-                async_tasks, return_when=asyncio.FIRST_COMPLETED
+                async_tasks,
+                return_when=asyncio.FIRST_COMPLETED,
+                timeout=self.sleep_interval,
             )
 
             # remove any completed tasks from running list
@@ -330,21 +332,25 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 async_tasks.remove(async_task)
 
             # attempt to claim a new task, add to execution
-            self.logger.info("Attempting to claim an additional task")
-            task_sks: List[ScopedKey] = self.client.claim_tasks(
-                scopes=self.scopes,
-                compute_service_id=self.compute_service_id,
-                count=self.claim_limit,
-                protocols=self.settings.protocols,
-            )
+            task_count_to_claim = self.claim_limit - len(async_tasks)
+            if task_count_to_claim > 0:
+                self.logger.info("Attempting to claim additional tasks")
+                task_sks: List[ScopedKey] = self.client.claim_tasks(
+                    scopes=self.scopes,
+                    compute_service_id=self.compute_service_id,
+                    count=task_count_to_claim,
+                    protocols=self.settings.protocols,
+                )
 
-            if all([task_sk is None for task_sk in task_sks]):
-                self.logger.info("No new task claimed")
+                if all([task_sk is None for task_sk in task_sks]):
+                    self.logger.info("No new tasks claimed")
 
-            for task_sk in task_sks:
-                if task_sk is not None:
-                    self.logger.info("Executing task '%s'...", task_sk)
-                    async_tasks.append(asyncio.create_task(self.async_execute(task_sk)))
+                for task_sk in task_sks:
+                    if task_sk is not None:
+                        self.logger.info("Executing task '%s'...", task_sk)
+                        async_tasks.append(
+                            asyncio.create_task(self.async_execute(task_sk))
+                        )
 
         return result_sks
 
