@@ -330,7 +330,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
             # attempt to claim a new task, add to execution
             if self.claim_limit - len(async_tasks) > 0:
-                self.logger.info("Attempting to claim an additional task")
+                self.logger.info("Attempting to claim additional tasks")
                 task_sks: List[ScopedKey] = self.client.claim_tasks(
                     scopes=self.scopes,
                     compute_service_id=self.compute_service_id,
@@ -339,7 +339,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 )
 
                 if all([task_sk is None for task_sk in task_sks]):
-                    self.logger.info("No new task claimed")
+                    self.logger.info("No new tasks claimed")
 
                 for task_sk in task_sks:
                     if task_sk is not None:
