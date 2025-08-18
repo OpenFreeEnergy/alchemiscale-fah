@@ -176,10 +176,10 @@ The PROJECT creation process automatically:
 
 .. _this list: https://docs.foldingathome.org/project-numbers.html
 
-Project Creation
+PROJECT Creation
 ================
 
-Create FAH projects using the **alchemiscale-fah** CLI::
+Create FAH PROJECTs using the **alchemiscale-fah** CLI::
 
     alchemiscale-fah create-project \
         --project-id <project-id> \
@@ -192,13 +192,13 @@ Create FAH projects using the **alchemiscale-fah** CLI::
         --certificate-file ./auth/fah-cert.pem \
         --key-file ./auth/fah-key.pem
 
-Project Configuration Parameters
+PROJECT Configuration Parameters
 ===============================
 
-* **project-id**: Unique integer identifier for the FAH project
+* **project-id**: Unique integer identifier for the FAH PROJECT
 * **core-id**: Computational core to use (in hexadecimal, e.g., ``0x26`` for ``openmm-core`` 26)
 * **core-type**: Type of simulation engine (``openmm`` or ``gromacs``)
-* **contact-email**: Contact email for the project
+* **contact-email**: Contact email for the PROJECT
 * **n-atoms**: Expected number of atoms for credit calculation
 * **nonbonded-settings**: Nonbonded calculation method (``PME`` or ``NoCutoff``)
 
@@ -270,9 +270,9 @@ Required Configuration Parameters
 * ``fah_key_file``: Path to RSA private key file
 * ``fah_csr_file``: Path to certificate signing request file
 
-**project configuration:**
+**PROJECT configuration:**
 
-* ``fah_project_ids``: List of FAH project IDs this service should use
+* ``fah_project_ids``: List of FAH PROJECT IDs this service should use
 * ``fah_core_ids_supported``: List of supported core IDs (in hex format)
 
 Optional Configuration Parameters
@@ -312,7 +312,7 @@ The service will:
 1. **Initialize**: Load configuration and validate parameters
 2. **Authenticate**: Connect to **alchemiscale** server and verify credentials  
 3. **Certificate Check**: Verify or renew FAH certificates if needed
-4. **Project Validation**: Confirm access to specified FAH projects
+4. **PROJECT Validation**: Confirm access to specified FAH PROJECTs
 5. **Storage Setup**: Initialize local index and object store directories
 6. **Start Processing**: Begin polling for tasks and managing execution
 
@@ -355,6 +355,65 @@ Note that if writing to a log file, no file rotation is performed.
 The file will grow monotonically and without bound on its own for a long-running service.
 
 
+****************************
+Troubleshooting
+****************************
+
+Common Issues and Solutions
+===========================
+
+**Certificate Problems:**
+
+* **Expired Certificates**: Check ``fah_cert_update_interval`` and verify automatic renewal
+* **Permission Issues**: Ensure service has read access to certificate files
+* **Invalid CSR**: Regenerate CSR with correct email address
+
+**Connectivity Issues:**
+
+* **Network Access**: Verify HTTPS connectivity to all required URLs
+* **Firewall Rules**: Ensure outbound HTTPS (port 443) access
+* **DNS Resolution**: Confirm work server URL resolves correctly
+
+**Configuration Errors:**
+
+* **Invalid PROJECT IDs**: Verify PROJECTs exist and are accessible
+* **Path Issues**: Use absolute paths for all file and directory settings
+* **Permission Problems**: Ensure service has write access to storage directories
+
+**Performance Issues:**
+
+* **Slow Task Processing**: Adjust ``fah_poll_interval`` and ``max_processpool_workers``
+* **Resource Exhaustion**: Monitor CPU, memory, and disk usage
+* **Network Bottlenecks**: Check bandwidth and latency to FAH servers
+
+Diagnostic Commands
+===================
+
+**Check Service Status:**
+
+.. code-block:: bash
+
+    # Monitor service logs
+    tail -f alchemiscale-fah.log
+    
+    # Check certificate validity
+    openssl x509 -in ./auth/fah-cert.pem -text -noout
+    
+    # Verify connectivity to work server
+    curl -s --cert ./auth/fah-cert.pem --key ./auth/key.pem https://<your-work-server>.foldingathome.org/api/projects
+
+**Debug Configuration:**
+
+.. code-block:: bash
+
+    # Validate YAML syntax
+    python -c "import yaml; yaml.safe_load(open('config.yaml'))"
+    
+    # Test certificate files
+    openssl rsa -in ./auth/fah-key.pem -check
+    openssl req -in ./auth/fah-csr.pem -text -noout
+
+
 .. _project_testing:
 
 ***************
@@ -363,3 +422,8 @@ PROJECT testing
 
 With the service running,
 the FAH PROJECTs it uses will need to be run through INTERNAL and BETA testing before enabling them for full **Folding\@Home**.
+
+Submit ``AlchemicalNetwork``\s featuring a variety of ``Transformation``\s using FAH-based ``Protocol``\s as detailed in the :ref:`User Guide <user_guide>`, and create and action ``Task``\s for these.
+Observe FAH jobs being generated on the assignment server for your PROJECTs, and work with volunteers in INTERNAL and BETA to set appropriate constraints and adjust the ``credit`` value for each PROJECT accordingly.
+
+.. note:: After adjusting the ``credit`` value for a PROJECT on the work server in its corresponding ``project.xml``, you will need to restart the work server service with ``systemctl restart fah-work.service``.

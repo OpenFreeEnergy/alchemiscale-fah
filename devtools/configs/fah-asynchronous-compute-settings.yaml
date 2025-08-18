@@ -95,12 +95,12 @@ init:
 
   # Path to the RSA private key used for TLS communication with FAH servers;
   # required for real deployments.
-  fah_key_file: "./path/to/key.pem"
+  fah_key_file: "./path/to/fah-key.pem"
   
   # Path to the certificate signing request (CSR) file generated from private key, in PEM format;
   # only needed for use with real FAH servers, not testing;
   # Required for refreshes of the `certificate_file` to be performed via API calls
-  fah_csr_file: "./path/to/csr.pem"
+  fah_csr_file: "./path/to/fah-csr.pem"
 
   # Whether to verify SSL certificate presented by the FAH server.
   fah_client_verify: True
