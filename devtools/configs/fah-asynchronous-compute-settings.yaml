@@ -46,10 +46,11 @@ init:
 
   # List giving names of Protocols to run with this service;
   # `null` means no restriction
-  protocols: null
+  protocols:
+    - "FahNonEquilibriumCyclingProtocol"
 
   # Maximum number of Tasks to claim at a time from a TaskHub.
-  claim_limit: 1
+  claim_limit: 1000
 
   # The loglevel at which to report via STDOUT; see the :mod:`logging` docs for
   # available levels.
