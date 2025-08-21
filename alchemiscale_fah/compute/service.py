@@ -260,6 +260,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         if protocoldagresult.ok():
             # only want to delete if a `protocoldagresult` comes out as a success
+            self.index.del_task_protocoldag(task)
             if not self.keep_shared:
                 shutil.rmtree(shared)
 

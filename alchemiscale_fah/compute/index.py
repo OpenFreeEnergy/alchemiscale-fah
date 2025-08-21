@@ -285,6 +285,14 @@ class FahComputeServiceIndex:
 
         return protocoldag
 
+    def del_task_protocoldag(self, task: GufeKey):
+        task_path = self.obj_store / "tasks" / str(task)
+
+        if not task_path.exists():
+            return None
+
+        shutil.rmtree(task_path)
+
     def set_protocolunit_result(
         self, protocolunit: GufeKey, protocolunitresult: ProtocolUnitResult
     ) -> Path:

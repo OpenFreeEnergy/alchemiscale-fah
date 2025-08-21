@@ -57,6 +57,9 @@ dependencies:
   - plyvel
   - zstandard
 
+  # temporary pins
+  - openff-interchange<=0.4.4
+
   - pip:
     - git+https://github.com/OpenFreeEnergy/alchemiscale
     - git+https://github.com/datryllic/grolt # neo4j test server deployment
