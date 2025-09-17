@@ -462,10 +462,13 @@ def protocoldagresult_ok(protocoldagresult: ProtocolDAGResult) -> bool:
 
     # initialize empty list for protocol_units that didn't have any
     # protocol_unit_results
-    for unit in (set(protocoldagresult.protocol_units) - set(unit_result_mapping.keys())):
+    for unit in set(protocoldagresult.protocol_units) - set(unit_result_mapping.keys()):
         unit_result_mapping[unit] = []
 
-    return all(any(pur.ok() for pur in unit_result_mapping[pu]) for pu in protocoldagresult.protocol_units)
+    return all(
+        any(pur.ok() for pur in unit_result_mapping[pu])
+        for pu in protocoldagresult.protocol_units
+    )
 
 
 async def execute_DAG(
