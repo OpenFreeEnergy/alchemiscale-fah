@@ -239,7 +239,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
                 index=self.index,
             )
         finally:
-            if not self.keep_scratch:
+            if not self.keep_scratch and scratch.exists():
                 shutil.rmtree(scratch)
 
         if protocoldagresult.ok():
@@ -261,7 +261,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         if protocoldagresult.ok():
             # only want to delete if a `protocoldagresult` comes out as a success
             self.index.del_task_protocoldag(task)
-            if not self.keep_shared:
+            if not self.keep_shared and shared.exists():
                 shutil.rmtree(shared)
 
         return task, result_sk
@@ -456,6 +456,18 @@ def execute_unit(unit, params):
     )
 
 
+# shim until fix in gufe is merged: https://github.com/OpenFreeEnergy/gufe/pull/622
+def protocoldagresult_ok(protocoldagresult: ProtocolDAGResult) -> bool:
+    unit_result_mapping = protocoldagresult._unit_result_mapping.copy()
+
+    # initialize empty list for protocol_units that didn't have any
+    # protocol_unit_results
+    for unit in (set(protocoldagresult.protocol_units) - set(unit_result_mapping.keys())):
+        unit_result_mapping[unit] = []
+
+    return all(any(pur.ok() for pur in unit_result_mapping[pu]) for pu in protocoldagresult.protocol_units)
+
+
 async def execute_DAG(
     protocoldag: ProtocolDAG,
     *,
@@ -606,7 +618,7 @@ async def execute_DAG(
             except asyncio.CancelledError:
                 return None
             finally:
-                if not keep_scratch:
+                if not keep_scratch and scratch.exists():
                     shutil.rmtree(scratch)
 
             if result.ok():
@@ -685,17 +697,19 @@ async def execute_DAG(
     # clean up failed shared directories, since these aren't used for replays
     if not keep_shared:
         for shared_path in failed_shared_paths:
-            shutil.rmtree(shared_path)
+            if shared_path.exists():
+                shutil.rmtree(shared_path)
 
     # only if we successfully completed the ProtocolDAG, clean up index and
     # drop marker files for FAH cleanup
-    if pdr.ok():
+    if protocoldagresult_ok(pdr):
 
         # clean up successful shared directories, since we no longer need them
         # for replays
         if not keep_shared:
             for shared_path in successful_shared_paths:
-                shutil.rmtree(shared_path)
+                if shared_path.exists():
+                    shutil.rmtree(shared_path)
 
         # clean up protocolunitresults from index object state store
         for unit in pdr.protocol_units:
