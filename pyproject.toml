@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=61.2",
+    "setuptools>=77.0.3",
     "versioningit",
 ]
 build-backend = "setuptools.build_meta"
@@ -10,11 +10,11 @@ name = "alchemiscale_fah"
 description = ""
 readme = "README.md"
 authors = [{name = "OpenFF and Chodera Lab developers"}]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 1 - Planning",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
