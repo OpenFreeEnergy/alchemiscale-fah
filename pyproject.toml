@@ -38,7 +38,6 @@ alchemiscale-fah = "alchemiscale_fah.cli:cli"
 [tool.setuptools]
 zip-safe = false
 include-package-data = true
-license-files = ["LICENSE"]
 
 [tool.setuptools.packages]
 find = {namespaces = false}
