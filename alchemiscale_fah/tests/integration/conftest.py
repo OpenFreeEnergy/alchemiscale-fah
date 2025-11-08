@@ -218,11 +218,20 @@ def s3objectstore_settings():
 
 
 @fixture(scope="module")
-def s3os_server(s3objectstore_settings):
+def s3objectstore_settings_endpoint(s3objectstore_settings):
+
+    settings = s3objectstore_settings.model_dump()
+    settings["AWS_ENDPOINT_URL"] = "http://127.0.0.1:5000"
+
+    return S3ObjectStoreSettings(**settings)
+
+
+@fixture(scope="module")
+def s3os_server(s3objectstore_settings_endpoint):
     server = ThreadedMotoServer()
     server.start()
 
-    s3os = get_s3os(s3objectstore_settings, endpoint_url="http://127.0.0.1:5000")
+    s3os = get_s3os(s3objectstore_settings_endpoint)
     s3os.initialize()
 
     yield s3os
