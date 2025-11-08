@@ -372,6 +372,7 @@ class FahAsynchronousComputeService(SynchronousComputeService):
             If `None`, the service will have no time limit.
 
         """
+        self._stop = False
         self.cycle_init()
 
         # TODO: add running count of successes/failures, log to output
