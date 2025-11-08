@@ -5,8 +5,9 @@ channels:
 dependencies:
   - python<3.13
   - sphinx>=5.0,<6
-  - sphinx-rtd-theme
+  - furo
   - myst-nb
   - myst-parser>=0.14
   - docutils
   - sphinx-notfound-page
+  - alchemiscale-compute

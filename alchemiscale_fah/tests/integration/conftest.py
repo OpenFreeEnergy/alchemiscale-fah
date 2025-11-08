@@ -177,32 +177,41 @@ def uri(neo4j_service_and_uri):
     return uri
 
 
-# TODO: this should be pulling from the defined profile
-@fixture(scope="session")
-def graph(uri):
-    return GraphDatabase.driver(
-        uri,
-        auth=("neo4j", "password"),
-    )
-
-
 ## data
 ### below specific to alchemiscale
 
 
 @fixture(scope="module")
-def n4js(graph):
-    return Neo4jStore(graph)
+def n4jstore_settings(uri):
+
+    os.environ["NEO4J_URL"] = uri
+    os.environ["NEO4J_USER"] = "neo4j"
+    os.environ["NEO4J_PASS"] = "password"
+    os.environ["NEO4J_DBNAME"] = "neo4j"
+
+    return Neo4jStoreSettings()
+
+
+@fixture(scope="module")
+def n4js(n4jstore_settings):
+
+    n4js = Neo4jStore(n4jstore_settings)
+
+    yield n4js
+
+    n4js.close()
 
 
 @fixture
-def n4js_fresh(graph):
-    n4js = Neo4jStore(graph)
+def n4js_fresh(n4jstore_settings):
+    n4js = Neo4jStore(n4jstore_settings)
 
     n4js.reset()
     n4js.initialize()
 
-    return n4js
+    yield n4js
+
+    n4js.close()
 
 
 @fixture(scope="module")
@@ -218,11 +227,20 @@ def s3objectstore_settings():
 
 
 @fixture(scope="module")
-def s3os_server(s3objectstore_settings):
+def s3objectstore_settings_endpoint(s3objectstore_settings):
+
+    settings = s3objectstore_settings.model_dump()
+    settings["AWS_ENDPOINT_URL"] = "http://127.0.0.1:5000"
+
+    return S3ObjectStoreSettings(**settings)
+
+
+@fixture(scope="module")
+def s3os_server(s3objectstore_settings_endpoint):
     server = ThreadedMotoServer()
     server.start()
 
-    s3os = get_s3os(s3objectstore_settings, endpoint_url="http://127.0.0.1:5000")
+    s3os = get_s3os(s3objectstore_settings_endpoint)
     s3os.initialize()
 
     yield s3os
@@ -262,7 +280,7 @@ def compute_service_id():
 
 
 @fixture(scope="module")
-def compute_api(s3os_server):
+def compute_api(n4jstore_settings, s3os_server):
     def get_s3os_override():
         return s3os_server
 
