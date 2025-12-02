@@ -24,7 +24,7 @@ requires-python = ">= 3.9"
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/openforcefield/alchemiscale_fah"
+Homepage = "https://github.com/OpenFreeEnergy/alchemiscale-fah"
 
 [project.optional-dependencies]
 test = [
