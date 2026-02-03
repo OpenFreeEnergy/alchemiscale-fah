@@ -57,7 +57,6 @@ from alchemiscale_fah.protocols.feflow.nonequilibrium_cycling import (
     FahNonEquilibriumCyclingProtocol,
 )
 
-
 NEO4J_PROCESS = {}
 NEO4J_VERSION = os.getenv("NEO4J_VERSION", "")
 
