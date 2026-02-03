@@ -15,7 +15,6 @@ from pydantic import (
 from alchemiscale.models import ScopedKey
 from ..utils import NonbondedSettings
 
-
 # FahAdaptiveSamplingClient models
 
 
