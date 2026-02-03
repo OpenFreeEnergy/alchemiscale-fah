@@ -61,4 +61,4 @@ dependencies:
   - pip:
     - git+https://github.com/OpenFreeEnergy/alchemiscale
     - git+https://github.com/datryllic/grolt # neo4j test server deployment
-    - git+https://github.com/OpenFreeEnergy/openfe-benchmarks
+    - git+https://github.com/OpenFreeEnergy/openfe-benchmarks@v0.1.0

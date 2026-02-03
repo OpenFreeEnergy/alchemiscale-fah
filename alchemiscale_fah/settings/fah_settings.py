@@ -46,7 +46,7 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         None,
         description="If specified, this is the minimum atom index returned in the XTC file (optional)",
     )
-    xtcMaxAtom: int = Field(
+    xtcMaxAtom: Optional[int] = Field(
         None,
         description="If specified, this is the maximum atom index returned in the XTC file (optional)",
     )
@@ -62,7 +62,7 @@ class FahOpenMMCoreSettings(SettingsBaseModel):
         None,
         description="If specified, this is the minimum atom index returned in the TRR file (optional)",
     )
-    trrMaxAtom: int = Field(
+    trrMaxAtom: Optional[int] = Field(
         None,
         description="If specified, this is the maximum atom index returned in the XTC file (optional)",
     )
