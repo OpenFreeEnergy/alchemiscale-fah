@@ -34,7 +34,7 @@ from ..utils import NONBONDED_EFFORT, NonbondedSettings
 class FahExecutionException(RuntimeError): ...
 
 
-@dataclass
+@dataclass(kw_only=True)
 class FahContext(Context):
     fah_client: FahAdaptiveSamplingClient
     fah_projects: List[FahProject]
