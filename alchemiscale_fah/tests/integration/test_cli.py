@@ -151,27 +151,25 @@ def compute_service_config(compute_api_args, fah_client_preloaded):
     fahc: FahAdaptiveSamplingClient = fah_client_preloaded
 
     config = {
-        "init": {
-            "api_url": f"http://{host}:{port}",
-            "identifier": "test-compute-user",
-            "key": "test-comute-user-key",
-            "name": "test-compute-service",
-            "shared_basedir": "./shared",
-            "scratch_basedir": "./scratch",
-            "loglevel": "INFO",
-            "fah_as_url": fahc.as_url,
-            "fah_ws_url": fahc.ws_url,
-            "fah_certificate_file": str(fahc.certificate_file),
-            "fah_key_file": str(fahc.key_file),
-            "fah_csr_file": str(fahc.csr_file),
-            "fah_client_verify": False,
-            "fah_cert_update_interval": 2,
-            "index_dir": "./index/index_dir",
-            "obj_store": "./index/object_store",
-            "fah_project_ids": [90001],
-            "fah_core_ids_supported": ["0x23"],
-        },
-        "start": {"max_time": None},
+        "api_url": f"http://{host}:{port}",
+        "identifier": "test-compute-user",
+        "key": "test-comute-user-key",
+        "name": "test-compute-service",
+        "shared_basedir": "./shared",
+        "scratch_basedir": "./scratch",
+        "loglevel": "INFO",
+        "fah_as_url": fahc.as_url,
+        "fah_ws_url": fahc.ws_url,
+        "fah_certificate_file": str(fahc.certificate_file),
+        "fah_key_file": str(fahc.key_file),
+        "fah_csr_file": str(fahc.csr_file),
+        "fah_client_verify": False,
+        "fah_cert_update_interval": 2,
+        "index_dir": "./index/index_dir",
+        "obj_store": "./index/object_store",
+        "fah_project_ids": [90001],
+        "fah_core_ids_supported": ["0x23"],
+        "max_time": None,
     }
 
     return config
@@ -185,8 +183,8 @@ def test_compute_fahasynchronous(
 
     # create compute identity; add all scope access
     identity = CredentialedComputeIdentity(
-        identifier=compute_service_config["init"]["identifier"],
-        hashed_key=hash_key(compute_service_config["init"]["key"]),
+        identifier=compute_service_config["identifier"],
+        hashed_key=hash_key(compute_service_config["key"]),
     )
 
     n4js.create_credentialed_entity(identity)
@@ -211,7 +209,7 @@ def test_compute_fahasynchronous(
 
             q = f"""
             match (csreg:ComputeServiceRegistration)
-            where csreg.identifier =~ "{compute_service_config['init']['name']}.*"
+            where csreg.identifier =~ "{compute_service_config['name']}.*"
             return csreg
             """
             while True:
