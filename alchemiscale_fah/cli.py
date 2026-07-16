@@ -262,16 +262,11 @@ def fah_asynchronous(config_file):
 
     params = yaml.safe_load(config_file)
 
-    params_init = params.get("init", {})
-    params_start = params.get("start", {})
-
-    if "scopes" in params_init:
-        params_init["scopes"] = [
-            Scope.from_str(scope) for scope in params_init["scopes"]
-        ]
+    if "scopes" in params:
+        params["scopes"] = [Scope.from_str(scope) for scope in params["scopes"]]
 
     service = FahAsynchronousComputeService(
-        FahAsynchronousComputeServiceSettings(**params_init)
+        FahAsynchronousComputeServiceSettings(**params)
     )
 
     # add signal handling
@@ -284,6 +279,6 @@ def fah_asynchronous(config_file):
         signal.signal(getattr(signal, signame), stop)
 
     try:
-        service.start(**params_start)
+        service.start()
     except KeyboardInterrupt:
         pass

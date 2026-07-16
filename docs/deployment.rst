@@ -339,17 +339,15 @@ The service handles ``SIGTERM`` and ``SIGINT`` signals for clean shutdown::
 
 By default, the service cleans up temporary directories. To retain them for debugging::
 
-    init:
-      keep_shared: True
-      keep_scratch: True
+    keep_shared: True
+    keep_scratch: True
 
 **Log Management:**
 
 Configure logging for operational monitoring::
 
-    init:
-      loglevel: "INFO"  # or DEBUG, WARN, ERROR
-      logfile: "./alchemiscale-fah.log"
+    loglevel: "INFO"  # or DEBUG, WARN, ERROR
+    logfile: "./alchemiscale-fah.log"
 
 Note that if writing to a log file, no file rotation is performed.
 The file will grow monotonically and without bound on its own for a long-running service.
