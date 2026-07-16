@@ -62,7 +62,7 @@ For production use of this protocol, we recommend the default settings::
 
     >>> from alchemiscale_fah.protocols.feflow import FahNonEquilibriumCyclingProtocol
 
-    >>> settings = NonEquilibriumCyclingProtocol.default_settings()
+    >>> settings = FahNonEquilibriumCyclingProtocol.default_settings()
 
 These default settings will perform non-equilibrium cycling with a total simulation time of 4 ns for each cycle, starting with 1 ns of equilibrium sampling in state A, 1 ns of nonequilibrium sampling from state A to B, 1 ns of equilibrium sampling in state B, and finally 1 ns of nonequilibrium sampling from state B to A.
 
