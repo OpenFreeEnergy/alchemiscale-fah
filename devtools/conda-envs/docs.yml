@@ -10,4 +10,4 @@ dependencies:
   - myst-parser>=0.14
   - docutils
   - sphinx-notfound-page
-  - alchemiscale-compute
+  - alchemiscale-compute =0.7.2
