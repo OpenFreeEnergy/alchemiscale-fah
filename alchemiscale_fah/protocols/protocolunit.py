@@ -283,11 +283,14 @@ class FahOpenMMSimulationUnit(FahSimulationUnit):
         else:
             # if we have a CLONE ID, it means that we have seen this
             # Task-ProtocolUnit before; we check its status, and if it is in a
-            # failed state, then we restart it
+            # failed state, then we raise an exception
             jobdata = ctx.fah_client.get_clone(project_id, run_id, clone_id)
 
             if JobStateEnum[jobdata.state] is JobStateEnum.FAILED:
-                ctx.fah_client.restart_clone(project_id, run_id, clone_id)
+                raise FahExecutionException(
+                    "Consecutive failed or faulty WUs exceeded the "
+                    f"maximum for RUN {run_id} in PROJECT {project_id}"
+                )
 
         while True:
             # check for and await sleep results from work server
