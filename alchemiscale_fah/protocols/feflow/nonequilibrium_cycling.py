@@ -158,6 +158,12 @@ class FahNonEquilibriumCyclingProtocol(NonEquilibriumCyclingProtocol):
         base_settings.integrator_settings.equilibrium_steps = 250000
         base_settings.integrator_settings.nonequilibrium_steps = 250000
 
+        # the default for this setting upstream is `CUDA`;
+        # setting it to `None` will use the fastest platform available on the host,
+        # and not raise an exception if a GPU is not present;
+        # this setting has no bearing on `openm-core` behavior downstream
+        base_settings.engine_settings.compute_platform = None
+
         fah_openmm_core_settings = FahOpenMMCoreSettings()
 
         # because this protocol does not minimize in its `SetupUnit`, we tell

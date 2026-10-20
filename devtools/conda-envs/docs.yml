@@ -3,11 +3,11 @@ channels:
   - conda-forge
 
 dependencies:
-  - python<3.13
-  - sphinx>=5.0,<6
+  - python=3.13
+  - sphinx
   - furo
   - myst-nb
   - myst-parser>=0.14
   - docutils
   - sphinx-notfound-page
-  - alchemiscale-compute
+  - alchemiscale-compute =0.7.2
