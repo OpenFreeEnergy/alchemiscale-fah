@@ -63,6 +63,8 @@ class FahAsynchronousComputeService(SynchronousComputeService):
         self.sleep_interval = self.settings.sleep_interval
         self.heartbeat_interval = self.settings.heartbeat_interval
         self.claim_limit = self.settings.claim_limit
+        self.max_tasks = self.settings.max_tasks
+        self.max_time = self.settings.max_time
 
         self.client = AlchemiscaleComputeClient(
             self.settings.api_url,
@@ -355,23 +357,19 @@ class FahAsynchronousComputeService(SynchronousComputeService):
 
         return result_sks
 
-    def start(self, max_tasks: Optional[int] = None, max_time: Optional[int] = None):
+    def start(self):
         """Start the service.
 
-        Limits to the maximum number of executed tasks or seconds to run for
-        can be set. The first maximum to be hit will trigger the service to
-        exit.
-
-        Parameters
-        ----------
-        max_tasks
-            Max number of Tasks to execute before exiting.
-            If `None`, the service will have no task limit.
-        max_time
-            Max number of seconds to run before exiting.
-            If `None`, the service will have no time limit.
+        The service runs until it is told to stop, or until one of the limits
+        configured on its settings is reached. ``max_tasks`` caps the number of
+        Tasks executed and ``max_time`` caps the number of seconds run; the
+        first maximum to be hit triggers the service to exit. Either limit being
+        ``None`` (the default) means no limit of that kind.
 
         """
+        max_tasks = self.max_tasks
+        max_time = self.max_time
+
         self._stop = False
         self.cycle_init()
 
